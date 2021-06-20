@@ -1,7 +1,21 @@
-#include <iostream>
+#include "../include/halogen.h"
 
-int main()
+#include <stdexcept>
+#include <cstdlib>
+
+int main (int argc, char *argv[])
 {
-    std::cout << "Hello";
-    return 0;
+    halogen::Engine engine;
+
+    try
+    {
+        engine.run();
+    }
+    catch (std::exception &exception)
+    {
+        std::cout << "[EXCEPTION CAUGHT] : " << exception.what() << '\n';
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
