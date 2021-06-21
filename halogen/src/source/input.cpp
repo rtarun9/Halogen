@@ -5,23 +5,17 @@ namespace halogen
     Input::Input()
     {
         m_keys.clear();
-        m_current_pressed_keys.clear();
 
         set_input_map();
 
         m_quit_application = false;
     }
 
-    void Input::reset_inputs()
-    {
-        m_current_pressed_keys.clear();
-    }
-
     void Input::process_inputs()
     {
-        if(SDL_PollEvent(&m_input_event) != 0)
+        if (SDL_PollEvent(&m_input_event) != 0)
         {
-            m_keyboard_state = SDL_GetKeyboardState(0);
+            m_keyboard_state = SDL_GetKeyboardState(nullptr);
 
             if (m_input_event.type == SDL_QUIT)
             {
@@ -32,7 +26,10 @@ namespace halogen
 
     bool Input::is_key_pressed(std::string key)
     {
-        return m_keyboard_state[m_keys[key]] == 1;
+        if (m_keyboard_state[m_keys[key]] == 1)
+            return true;
+
+        return false;
     }
 
     bool Input::quit()
@@ -60,8 +57,6 @@ namespace halogen
     void Input::clean_up()
     {
         m_keys.clear();
-        m_current_pressed_keys.clear();
-
         debug::log("Cleaning up input.");
     }
 

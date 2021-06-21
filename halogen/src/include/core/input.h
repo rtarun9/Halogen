@@ -15,7 +15,6 @@ namespace halogen
     public:
         Input();
 
-        void reset_inputs();
         void process_inputs();
 
         bool is_key_pressed(std::string key);
@@ -31,9 +30,8 @@ namespace halogen
         SDL_Event m_input_event;
 
         std::map<std::string, SDL_Scancode> m_keys;
-
-        std::vector<SDL_Scancode> m_current_pressed_keys;
         const Uint8 *m_keyboard_state;
+
         bool m_quit_application;
     };
 }

@@ -22,13 +22,12 @@ namespace halogen
 
             if (m_input->quit() == true)
             {
-                m_window->close();
                 m_engine_quit = true;
             }
 
-            if (m_input->is_key_pressed("W") == true)
+            if (m_input->is_key_pressed("Enter"))
             {
-                debug::log("Pressed Enter");
+                debug::log("Enter key was pressed");
             }
         }
     }

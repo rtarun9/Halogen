@@ -25,7 +25,8 @@ namespace halogen
 
     namespace debug
     {
-        inline void log(const char *message)
+        template <typename T>
+        inline void log(T message)
         {
             std::cout << "[LOG] :  " << message << '\n';
         }
