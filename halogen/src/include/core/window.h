@@ -16,7 +16,9 @@ namespace halogen
         Window(int width, int height, const char *title);
 
         void create_window();
-        void should_window_close(Input *input);
+        void close();
+
+        SDL_Window& get_window();
 
         ~Window();
 

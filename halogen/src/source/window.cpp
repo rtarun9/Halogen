@@ -17,7 +17,7 @@ namespace halogen
     {
         m_window = nullptr;
 
-        assert::error_condition(m_window_width < 0 || m_window_height < 0, "Cannot have window dimensions < 0");
+        ASSERT(m_window_width < 0 || m_window_height < 0, "Cannot have window dimensions < 0");
 
         m_window_width = width;
         m_window_height = height;
@@ -38,18 +38,27 @@ namespace halogen
 
         if (m_window == nullptr)
         {
-            assert::error("Failed to create window. Platform : SDL2.");
+            debug::warning("Failed to create window. Platform : SDL2.");
         }
     }
 
-    void Window::should_window_close(Input *input)
+    void Window::close()
     {
-        if (input->quit())
-            m_window_close = true;
+        m_window_close = false;
+        m_window = nullptr;
+        m_window_title = nullptr;
+        SDL_DestroyWindow(m_window);
+
+        debug::log("Cleaning up window.");
+    }
+
+    SDL_Window& Window::get_window()
+    {
+        ASSERT(m_window == nullptr, "Cannot return reference to window since window is null.");
+        return *m_window;
     }
 
     Window::~Window()
     {
-        SDL_DestroyWindow(m_window);
     }
 }

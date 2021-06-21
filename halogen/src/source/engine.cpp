@@ -5,43 +5,50 @@ namespace halogen
     Engine::Engine()
     {
         m_window = nullptr;
+        m_engine_quit = false;
+    }
 
-        m_quit_engine = false;
-
+    void Engine::start()
+    {
         initialize();
+        run();
     }
 
     void Engine::run()
     {
-        while (!m_quit_engine)
+        while (!m_engine_quit)
         {
-            m_input.process_inputs();
+            m_input->process_inputs();
 
-            if (m_input.quit() == true)
-                return;
+            if (m_input->quit() == true)
+            {
+                m_window->close();
+                m_engine_quit = true;
+            }
 
-            m_input.reset_inputs();
+            if (m_input->is_key_pressed("W") == true)
+            {
+                debug::log("Pressed Enter");
+            }
         }
-    }
-
-    Engine::~Engine()
-    {
-        close_platform_backend();
     }
 
     void Engine::initialize()
     {
         initialize_platform_backend();
 
-        m_window = std::make_unique<Window>(-1, -1, "SUCKS");
+        m_window = std::make_unique<Window>();
         m_window->create_window();
+
+        m_input = std::make_unique<Input>();
+
     }
 
     void Engine::initialize_platform_backend()
     {
         if (SDL_Init(SDL_INIT_VIDEO) < 0)
         {
-            assert::error("Failed to initialize platform backend SDL2");
+            debug::error("Failed to initialize platform backend SDL2");
         }
     }
 
@@ -49,4 +56,17 @@ namespace halogen
     {
         SDL_Quit();
     }
+
+    void Engine::clean_up()
+    {
+        close_platform_backend();
+        debug::log("Cleaning up engine.");
+    }
+
+
+    Engine::~Engine()
+    {
+        clean_up();
+    }
+
 }

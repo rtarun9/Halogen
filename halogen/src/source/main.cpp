@@ -2,14 +2,16 @@
 
 #include <stdexcept>
 #include <cstdlib>
+#include <memory>
 
 int main (int argc, char *argv[])
 {
-    halogen::Engine engine;
+    std::unique_ptr<halogen::Engine> engine;
+    engine = std::make_unique<halogen::Engine>();
 
     try
     {
-        engine.run();
+        engine->start();
     }
     catch (std::exception &exception)
     {

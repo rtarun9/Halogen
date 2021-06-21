@@ -15,6 +15,7 @@ namespace halogen
     public:
         Engine();
 
+        void start();
         void run();
 
         ~Engine();
@@ -25,11 +26,13 @@ namespace halogen
         void initialize_platform_backend();
         void close_platform_backend();
 
+        void clean_up();
+
     private:
         std::unique_ptr<Window> m_window;
-        Input m_input;
+        std::unique_ptr<Input> m_input;
 
-        bool m_quit_engine;
+        bool m_engine_quit;
     };
 }
 #endif

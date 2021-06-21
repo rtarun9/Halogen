@@ -4,21 +4,41 @@
 #include <iostream>
 #include <cstring>
 
+#define MAX_MESSAGE_LENGTH 512
+
+enum LogType
+{
+    information = 0,
+    warning = 1,
+    error = 2
+};
+
 namespace halogen
 {
-    namespace assert
+    inline void ASSERT(bool condition, const char *message)
     {
-        inline void error(const char *error_message)
+        if (!condition)
         {
-            throw std::runtime_error(error_message);
+            throw std::runtime_error(message);
+        }
+    }
+
+    namespace debug
+    {
+        inline void log(const char *message)
+        {
+            std::cout << "[LOG] :  " << message << '\n';
         }
 
-        inline void error_condition(bool condition, const char *condition_fail_message)
+        inline void warning(const char *message)
         {
-            if (!condition)
-            {
-              error(condition_fail_message);
-            }
+            std::cout << "[WARNING] : " << message << '\n';
+        }
+
+        inline void error(const char *message)
+        {
+            std::cout << "[ERROR] : " << message << '\n';
+            throw std::runtime_error(message);
         }
     }
 }
