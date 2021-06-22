@@ -24,9 +24,9 @@ namespace halogen
         }
     }
 
-    bool Input::is_key_pressed(std::string key)
+    bool Input::is_key_pressed(InputMap::KeyboardInput::Keys key)
     {
-        if (m_keyboard_state[m_keys[key]] == 1)
+        if (m_keyboard_state[key] == 1)
             return true;
 
         return false;
@@ -34,7 +34,7 @@ namespace halogen
 
     bool Input::quit()
     {
-        return m_quit_application || is_key_pressed("Quit");
+        return m_quit_application || is_key_pressed(InputMap::KeyboardInput::Quit);
     }
 
     void Input::set_input_map()

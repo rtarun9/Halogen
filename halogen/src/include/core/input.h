@@ -10,6 +10,32 @@
 
 namespace halogen
 {
+     namespace InputMap
+    {
+        struct KeyboardInput
+        {
+            enum Keys
+            {
+                W = SDL_SCANCODE_W,
+                A = SDL_SCANCODE_A,
+                S = SDL_SCANCODE_S,
+                D = SDL_SCANCODE_D,
+                Quit = SDL_SCANCODE_ESCAPE,
+                Enter = SDL_SCANCODE_RETURN
+            };
+        };
+
+        struct MouseInput
+        {
+            enum MouseButtons
+            {
+                Left = SDL_BUTTON_LEFT,
+                Right = SDL_BUTTON_RIGHT,
+                Middle = SDL_BUTTON_MIDDLE
+            };
+        };
+    };
+
     class Input
     {
     public:
@@ -17,7 +43,7 @@ namespace halogen
 
         void process_inputs();
 
-        bool is_key_pressed(std::string key);
+        bool is_key_pressed(InputMap::KeyboardInput::Keys key);
         bool quit();
 
         ~Input();

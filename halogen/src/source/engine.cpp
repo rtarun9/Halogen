@@ -25,7 +25,7 @@ namespace halogen
                 m_engine_quit = true;
             }
 
-            if (m_input->is_key_pressed("Enter"))
+            if (m_input->is_key_pressed(InputMap::KeyboardInput::Enter))
             {
                 debug::log("Enter key was pressed");
             }
