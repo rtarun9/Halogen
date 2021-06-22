@@ -15,6 +15,7 @@ enum LogType
 
 namespace halogen
 {
+    /* Use ASSERT when code is syntactically correct, but logically wrong. */
     inline void ASSERT(bool condition, const char *message)
     {
         if (!condition)
