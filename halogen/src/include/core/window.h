@@ -23,6 +23,7 @@ namespace halogen
         ~Window();
 
     private:
+
         SDL_Window *m_window;
 
         int m_window_height;

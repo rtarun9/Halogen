@@ -33,7 +33,7 @@ namespace halogen
             m_window_title,
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             m_window_width, m_window_height,
-            SDL_WINDOW_SHOWN
+            SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
         );
 
         if (m_window == nullptr)

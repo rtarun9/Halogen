@@ -34,31 +34,20 @@ namespace halogen
 
     void Engine::initialize()
     {
-        initialize_platform_backend();
+        g_platform = std::make_unique<Platform>();
+        g_platform->initialize_backend();
 
-        m_window = std::make_unique<Window>();
+        m_window = std::make_shared<Window>();
         m_window->create_window();
 
         m_input = std::make_unique<Input>();
 
-    }
-
-    void Engine::initialize_platform_backend()
-    {
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
-        {
-            debug::error("Failed to initialize platform backend SDL2");
-        }
-    }
-
-    void Engine::close_platform_backend()
-    {
-        SDL_Quit();
+        m_renderer = std::make_unique<Renderer>();
+        m_renderer->initialize_renderer(m_window);
     }
 
     void Engine::clean_up()
     {
-        close_platform_backend();
         debug::log("Cleaning up engine.");
     }
 

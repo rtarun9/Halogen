@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <cstdarg>
 
 #define MAX_MESSAGE_LENGTH 512
 
@@ -13,12 +14,13 @@ enum LogType
     error = 2
 };
 
+/* TODO : convert functions to variadic functions in future. */
 namespace halogen
 {
     /* Use ASSERT when code is syntactically correct, but logically wrong. */
     inline void ASSERT(bool condition, const char *message)
     {
-        if (!condition)
+        if (condition)
         {
             throw std::runtime_error(message);
         }
@@ -26,10 +28,9 @@ namespace halogen
 
     namespace debug
     {
-        template <typename T>
-        inline void log(T message)
+        inline void log(const char *message)
         {
-            std::cout << "[LOG] :  " << message << '\n';
+            std::cout << "[LOG] : " << message << '\n';
         }
 
         inline void warning(const char *message)
