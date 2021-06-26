@@ -3,7 +3,9 @@
 
 #include "../../include/log.h"
 #include "../../include/core/configuration.h"
+#include "../../include/core/window.h"
 
+#include <memory>
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <cstring>

@@ -20,7 +20,7 @@ namespace halogen
         {
             m_input->process_inputs();
 
-            if (m_input->quit() == true)
+            if (m_input->quit())
             {
                 m_engine_quit = true;
             }
@@ -42,8 +42,8 @@ namespace halogen
 
         m_input = std::make_unique<Input>();
 
-        m_renderer = std::make_unique<Renderer>();
-        m_renderer->initialize_renderer(m_window);
+        m_renderer = std::make_unique<Renderer>(m_window);
+        m_renderer->initialize_renderer();
     }
 
     void Engine::clean_up()

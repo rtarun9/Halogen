@@ -19,7 +19,13 @@ set(SRC_FILES
         halogen/src/source/input.cpp
         halogen/src/source/engine.cpp
         halogen/src/include/core/engine.h
-        halogen/src/include/log.h halogen/src/include/halogen.h halogen/src/include/core/platform.h halogen/src/source/platform.cpp halogen/src/include/core/graphics/renderer.h halogen/src/source/graphics/renderer.cpp)
+        halogen/src/include/log.h
+        halogen/src/include/halogen.h
+        halogen/src/include/core/platform.h
+        halogen/src/source/platform.cpp
+        halogen/src/include/core/graphics/renderer.h
+        halogen/src/source/graphics/renderer.cpp
+        halogen/src/include/core/graphics/vk_utils.h)
 
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

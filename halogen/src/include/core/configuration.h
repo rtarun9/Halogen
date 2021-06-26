@@ -14,10 +14,16 @@ enum class PlatformBackend
 namespace configuration
 {
     /* Currently only SDL2 is available as a platform backend. */
-    constexpr PlatformBackend PLATFORM_BACKEND = PlatformBackend::SDL2;
+    constexpr static PlatformBackend PLATFORM_BACKEND = PlatformBackend::SDL2;
 
-    constexpr int DEFAULT_WINDOW_WIDTH = 720;
-    constexpr int DEFAULT_WINDOW_HEIGHT  = 680;
-    constexpr const char *DEFAULT_WINDOW_TITLE = "halogen engine";
+    constexpr static bool DEBUG = true;
+    constexpr static int DEFAULT_WINDOW_WIDTH = 720;
+    constexpr static int DEFAULT_WINDOW_HEIGHT  = 680;
+    constexpr static const char *DEFAULT_WINDOW_TITLE = "halogen engine";
+
+    constexpr static const char *VALIDATION_LAYERS[1] =
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
 }
 #endif
