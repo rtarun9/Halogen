@@ -1,14 +1,15 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "../../include/core/configuration.h"
-#include "../../include/log.h"
-#include "../../include/core/input.h"
+#include "../configuration.h"
+#include "../log.h"
+#include "../core/input.h"
 
 #include <SDL.h>
 
 namespace halogen
 {
+    /* Base class for window creation -> current using SDL as windowing API. */
     class Window
     {
     public:

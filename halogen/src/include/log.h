@@ -17,7 +17,7 @@ enum LogType
 /* TODO : convert functions to variadic functions in future. */
 namespace halogen
 {
-    /* Use ASSERT when code is syntactically correct, but logically wrong. */
+    /* Basic logging functions to be used through out the engine. */
     inline void ASSERT(bool condition, const char *message)
     {
         if (condition)

@@ -42,6 +42,7 @@ namespace halogen
         };
     };
 
+     /* Input class has functions for processing inputs independent of the API used. */
     class Input
     {
     public:

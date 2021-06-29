@@ -10,6 +10,7 @@ enum class PlatformBackend
     GLFW = 3,
 };
 
+/* Contains the current engine configuration details. */
 
 namespace configuration
 {
@@ -21,7 +22,9 @@ namespace configuration
     constexpr static int DEFAULT_WINDOW_HEIGHT  = 680;
     constexpr static const char *DEFAULT_WINDOW_TITLE = "halogen engine";
 
-    constexpr static const char *VALIDATION_LAYERS[1] =
+    constexpr static int VALIDATION_LAYER_COUNT = 1;
+
+    constexpr static const char *VALIDATION_LAYERS[VALIDATION_LAYER_COUNT] =
     {
         "VK_LAYER_KHRONOS_validation"
     };

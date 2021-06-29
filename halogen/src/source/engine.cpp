@@ -18,17 +18,9 @@ namespace halogen
     {
         while (!m_engine_quit)
         {
-            m_input->process_inputs();
-
-            if (m_input->quit())
-            {
-                m_engine_quit = true;
-            }
-
-            if (m_input->is_key_pressed(InputMap::KeyboardInput::Enter))
-            {
-                debug::log("Enter key was pressed");
-            }
+            process_input();
+            update();
+            render();
         }
     }
 
@@ -46,6 +38,26 @@ namespace halogen
         m_renderer->initialize_renderer();
     }
 
+    void Engine::process_input()
+    {
+        m_input->process_inputs();
+
+        if (m_input->quit())
+        {
+            m_engine_quit = true;
+        }
+
+    }
+
+    void Engine::update()
+    {
+
+    }
+
+    void Engine::render()
+    {
+        m_renderer->render();
+    }
     void Engine::clean_up()
     {
         debug::log("Cleaning up engine.");

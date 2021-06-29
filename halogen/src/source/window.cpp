@@ -44,7 +44,7 @@ namespace halogen
 
     void Window::close()
     {
-        m_window_close = false;
+        m_window_close = true;
         m_window = nullptr;
         m_window_title = nullptr;
         SDL_DestroyWindow(m_window);
