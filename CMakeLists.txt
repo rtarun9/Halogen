@@ -25,7 +25,8 @@ set(SRC_FILES
         halogen/src/source/platform.cpp
         halogen/src/include/core/graphics/renderer.h
         halogen/src/source/graphics/renderer.cpp
-        halogen/src/include/core/graphics/vk_debug.h)
+        halogen/src/include/core/graphics/vk_debug.h
+        halogen/src/include/common.h)
 
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

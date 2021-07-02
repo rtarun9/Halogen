@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstring>
 #include <cstdarg>
+#include <stdio.h>
 
 #define MAX_MESSAGE_LENGTH 512
 
