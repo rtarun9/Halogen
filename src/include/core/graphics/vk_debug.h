@@ -1,56 +1,69 @@
 #ifndef VK_DEBUG_UTILS
 #define VK_DEBUG_UTILS
 
-/* Included iostream since this code shouldn't be connected to halogen's logger system*/
+#include "../../log.h"
+
 #include <vulkan/vulkan.h>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 /* Vulkan specific debugging utilities. */
 
 /* Note : Convert to macro once function is complete.
  * Function currently not exiting program : try to do this without throwing exception (in future). */
-inline void VK_CHECK(VkResult result)
+inline void VK_CHECK(VkResult result, std::string additional_message = "")
 {
+    std::stringstream error_string_stream;
     if (result == VK_SUCCESS)
     {
         return;
     }
     else if (result == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
-        std::cerr << "[ERROR : ]" << " Extensions not found!" << '\n';
+        error_string_stream << "[ERROR : ]" << " Extensions not found!" << '\n';
     }
     else if (result == VK_ERROR_VALIDATION_FAILED_EXT)
     {
-        std::cerr << "[ERROR : ]" << " Validation failed!" << '\n';
+        error_string_stream << "[ERROR : ]" << " Validation failed!" << '\n';
     }
     else if (result == VK_ERROR_LAYER_NOT_PRESENT)
     {
-        std::cerr << "[ERROR : ]" << "Requested validation layer not present!" << '\n';
+        error_string_stream << "[ERROR : ]" << "Requested validation layer not present!" << '\n';
     }
     else if (result == VK_ERROR_FEATURE_NOT_PRESENT)
     {
-        std::cerr << "[ERROR : ]" << " Requested feature not present" << '\n';
+        error_string_stream << "[ERROR : ]" << " Requested feature not present" << '\n';
     }
     else if (result == VK_ERROR_UNKNOWN)
     {
-        std::cerr << "[ERROR : ]" << " error type unknown. Line in code : " << __LINE__ << '\n';
+        error_string_stream << "[ERROR : ]" << " error type unknown. Line in code : " << __LINE__ << '\n';
     }
     else if (result == VK_ERROR_INITIALIZATION_FAILED)
     {
-        std::cerr << "[ERROR : ]" << " initialization of system failed. Line in code : " << __LINE__ << '\n';
+        error_string_stream << "[ERROR : ]" << " initialization of system failed. Line in code : " << __LINE__ << '\n';
     }
     else if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY)
     {
-        std::cerr << "[ERROR : ]" << " device is out of memory!" << '\n';
+        error_string_stream << "[ERROR : ]" << " device is out of memory!" << '\n';
     }
     else if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
-        std::cerr << "[ERROR : ]" << " out of host memory!" << '\n';
+        error_string_stream << "[ERROR : ]" << " out of host memory!" << '\n';
+    }
+    else if (result == VK_INCOMPLETE)
+    {
+        error_string_stream << "[ERROR : ]" << " requested validation layers not found. " << '\n';
     }
     else
     {
-        std::cerr << "[ERROR TYPE NOT FOUND]. Line : " << __LINE__ << '\n';
+        error_string_stream << "[ERROR TYPE NOT FOUND]. Line : " << __LINE__ << '\n';
     }
+
+    error_string_stream << " " << additional_message;
+
+    halogen::debug::error(error_string_stream.str().c_str());
 }
 
 namespace vk_debug

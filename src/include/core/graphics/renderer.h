@@ -2,8 +2,8 @@
 #define RENDERER_H
 
 #include "../../configuration.h"
-#include "../../core/platform.h"
-#include "../../core/graphics/vk_debug.h"
+#include "../platform.h"
+#include "vk_debug.h"
 #include "../../common.h"
 
 #include <SDL_vulkan.h>
@@ -73,7 +73,12 @@ namespace halogen
         void create_device();
         void create_swapchain();
         void create_swapchain_image_views();
+        void create_render_pass();
         void create_graphics_pipeline();
+        void create_framebuffers();
+        void create_command_pool();
+        void create_command_buffers();
+        void create_sync_objects();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback
         (
@@ -87,6 +92,7 @@ namespace halogen
         void check_instance_extension_support(std::vector<const char*>& instance_extension_names, uint32_t& instance_extension_count);
         void get_instance_extensions(std::vector<const char*>& instance_extension_names, uint32_t& instance_extension_count);
 
+        [[nodiscard]]
         bool check_device_extension_support(VkPhysicalDevice& device);
 
         VkResult  create_platform_specific_window_surface();
@@ -95,6 +101,7 @@ namespace halogen
         void construct_debug_utils_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info, PFN_vkDebugUtilsMessengerCallbackEXT debug_callback);
 
         void get_supported_physical_devices(std::vector<VkPhysicalDevice>& available_physical_devices, uint32_t& available_physical_device_count);
+        [[nodiscard]]
         bool is_physical_device_suitable(VkPhysicalDevice& physical_device);
         QueueFamilyIndices get_queue_family_indices(VkPhysicalDevice& physical_device);
 
@@ -110,14 +117,17 @@ namespace halogen
         std::pair<VkShaderModule, VkShaderModule> create_shader_modules(const char *vertex_shader_file_path, const char *fragment_shader_file_path);
 
         /* Pointer to vulkan functions. */
-        VkResult create_debug_utils_messenger_EXT
+        [[maybe_unused]]
+        static VkResult create_debug_utils_messenger_EXT
         (
             VkInstance instance,
             const VkDebugUtilsMessengerCreateInfoEXT *create_info,
             const  VkAllocationCallbacks *allocator,
             VkDebugUtilsMessengerEXT *messenger
         );
-        void destroy_debug_utils_messenger_ext
+
+        [[maybe_unused]]
+        static void destroy_debug_utils_messenger_ext
         (
             VkInstance instance,
             VkDebugUtilsMessengerEXT messenger,
@@ -144,6 +154,19 @@ namespace halogen
         /* Queue handles. */
         VkQueue m_graphics_queue;
         VkQueue m_presentation_queue;
+
+        /* Related to graphics pipeline layout. */
+        VkPipelineLayout m_pipeline_layout;
+        VkRenderPass m_render_pass;
+        VkPipeline m_graphics_pipeline;
+
+        std::vector<VkFramebuffer> m_swapchain_framebuffers;
+
+        VkCommandPool m_command_pool;
+        std::vector<VkCommandBuffer> m_command_buffers;
+
+        VkSemaphore m_image_available_semaphore;
+        VkSemaphore m_render_finished_semaphore;
 
         /* References to other classes*/
         std::shared_ptr<Window>& m_window_reference;

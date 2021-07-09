@@ -29,10 +29,11 @@ namespace configuration
         "VK_LAYER_KHRONOS_validation"
     };
 
-    constexpr static int DEVICE_EXTENSION_COUNT = 1;
+    constexpr static int DEVICE_EXTENSION_COUNT = 2;
     constexpr static const char *DEVICE_EXTENSIONS[DEVICE_EXTENSION_COUNT] =
     {
-        "VK_KHR_swapchain"
+        "VK_KHR_swapchain",
+        "VK_EXT_debug_utils"
     };
 }
 #endif

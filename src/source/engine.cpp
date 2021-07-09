@@ -51,18 +51,18 @@ namespace halogen
 
     void Engine::update()
     {
-
+        //physics, fixed framerate, etc.
     }
 
     void Engine::render()
     {
         m_renderer->render();
     }
+
     void Engine::clean_up()
     {
         debug::log("Cleaning up engine.");
     }
-
 
     Engine::~Engine()
     {

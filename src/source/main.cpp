@@ -1,6 +1,5 @@
 #include "../include/halogen.h"
 
-#include <stdexcept>
 #include <cstdlib>
 #include <memory>
 

@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 /* This file will be filled with useful things later on, pretty barren for now. */
 
@@ -30,4 +31,6 @@ static std::vector<char> read_binary_file_from_path(const char *file_path)
     file.close();
     return file_contents;
 }
+
+/* Pointer to vulkan functions  that are not loaded by default */
 #endif

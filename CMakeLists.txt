@@ -11,22 +11,22 @@ find_package(Vulkan REQUIRED)
 include_directories(${VULKAN_INCLUDE_DIRS})
 
 set(SRC_FILES
-        halogen/src/source/main.cpp
-        halogen/src/include/core/window.h
-        halogen/src/source/window.cpp
-        halogen/src/include/configuration.h
-        halogen/src/include/core/input.h
-        halogen/src/source/input.cpp
-        halogen/src/source/engine.cpp
-        halogen/src/include/core/engine.h
-        halogen/src/include/log.h
-        halogen/src/include/halogen.h
-        halogen/src/include/core/platform.h
-        halogen/src/source/platform.cpp
-        halogen/src/include/core/graphics/renderer.h
-        halogen/src/source/graphics/renderer.cpp
-        halogen/src/include/core/graphics/vk_debug.h
-        halogen/src/include/common.h)
+        src/source/main.cpp
+        src/include/core/window.h
+        src/source/window.cpp
+        src/include/configuration.h
+        src/include/core/input.h
+        src/source/input.cpp
+        src/source/engine.cpp
+        src/include/core/engine.h
+        src/include/log.h
+        src/include/halogen.h
+        src/include/core/platform.h
+        src/source/platform.cpp
+        src/include/core/graphics/renderer.h
+        src/source/graphics/renderer.cpp
+        src/include/core/graphics/vk_debug.h
+        src/include/common.h src/include/core/graphics/instance.h src/source/graphics/instance.cpp src/include/core/graphics/vk_external.h)
 
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

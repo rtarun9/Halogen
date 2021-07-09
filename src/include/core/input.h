@@ -1,7 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include "../../include/log.h"
+#include "../log.h"
 
 #include <SDL.h>
 #include <vector>

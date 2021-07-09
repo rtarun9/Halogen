@@ -41,7 +41,7 @@ namespace halogen
 
         inline void error(const char *message)
         {
-            std::cout << "[ERROR] : " << message << '\n';
+            std::cerr << "[ERROR] : " << message << '\n';
             throw std::runtime_error(message);
         }
     }

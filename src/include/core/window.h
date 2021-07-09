@@ -3,7 +3,7 @@
 
 #include "../configuration.h"
 #include "../log.h"
-#include "../core/input.h"
+#include "input.h"
 
 #include <SDL.h>
 
