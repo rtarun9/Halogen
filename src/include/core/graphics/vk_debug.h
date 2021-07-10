@@ -22,39 +22,39 @@ inline void VK_CHECK(VkResult result, std::string additional_message = "")
     }
     else if (result == VK_ERROR_EXTENSION_NOT_PRESENT)
     {
-        error_string_stream << "[ERROR : ]" << " Extensions not found!" << '\n';
+        error_string_stream  << " Extensions not found!" << '\n';
     }
     else if (result == VK_ERROR_VALIDATION_FAILED_EXT)
     {
-        error_string_stream << "[ERROR : ]" << " Validation failed!" << '\n';
+        error_string_stream << " Validation failed!" << '\n';
     }
     else if (result == VK_ERROR_LAYER_NOT_PRESENT)
     {
-        error_string_stream << "[ERROR : ]" << "Requested validation layer not present!" << '\n';
+        error_string_stream << "Requested validation layer not present!" << '\n';
     }
     else if (result == VK_ERROR_FEATURE_NOT_PRESENT)
     {
-        error_string_stream << "[ERROR : ]" << " Requested feature not present" << '\n';
+        error_string_stream <<  " Requested feature not present" << '\n';
     }
     else if (result == VK_ERROR_UNKNOWN)
     {
-        error_string_stream << "[ERROR : ]" << " error type unknown. Line in code : " << __LINE__ << '\n';
+        error_string_stream  << " error type unknown. Line in code : " << __LINE__ << '\n';
     }
     else if (result == VK_ERROR_INITIALIZATION_FAILED)
     {
-        error_string_stream << "[ERROR : ]" << " initialization of system failed. Line in code : " << __LINE__ << '\n';
+        error_string_stream <<  " initialization of system failed. Line in code : " << __LINE__ << '\n';
     }
     else if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY)
     {
-        error_string_stream << "[ERROR : ]" << " device is out of memory!" << '\n';
+        error_string_stream <<  " device is out of memory!" << '\n';
     }
     else if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
     {
-        error_string_stream << "[ERROR : ]" << " out of host memory!" << '\n';
+        error_string_stream  << " out of host memory!" << '\n';
     }
     else if (result == VK_INCOMPLETE)
     {
-        error_string_stream << "[ERROR : ]" << " requested validation layers not found. " << '\n';
+        error_string_stream  << " requested validation layers not found. " << '\n';
     }
     else
     {

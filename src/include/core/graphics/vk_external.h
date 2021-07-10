@@ -14,13 +14,14 @@ namespace halogen::vk_external
         auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         if (func == nullptr)
         {
-            halogen::debug::error("Could not load vkCreateDebugUtilsMessengerEXT");
-            return VK_ERROR_EXTENSION_NOT_PRESENT;
+            debug::error("Failed to load vkCreateDebugUtilsMessengerEXT.");
         }
         else
         {
             return func(instance, create_info, allocator, messenger);
         }
+
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 
     static void destroy_debug_utils_messenger_ext
@@ -33,7 +34,7 @@ namespace halogen::vk_external
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         if (func == nullptr)
         {
-            halogen::debug::error("Could not load vkDestroyDebugUtilsMessengerEXT");
+            debug::error("Could not load vkDestroyDebugUtilsMessengerEXT");
         }
 
         return func(instance, messenger, allocator);

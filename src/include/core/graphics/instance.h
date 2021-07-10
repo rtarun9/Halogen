@@ -5,8 +5,8 @@
 #include "../../log.h"
 #include "../../configuration.h"
 #include "vk_external.h"
-
 #include "../platform.h"
+
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
@@ -25,10 +25,11 @@ namespace halogen
         [[nodiscard]]
         VkInstance get_vulkan_instance();
 
+        void close();
         ~Instance();
 
     private:
-        void initialize_instance();
+        void create_instance();
         void create_debug_messenger();
 
         /* Helper functions to get and check required instance / extensions. */
@@ -36,7 +37,7 @@ namespace halogen
         static bool check_validation_layer_support();
 
         [[nodiscard]]
-        static bool check_instance_extension_support(std::vector<VkLayerProperties>& layer);
+        static bool check_instance_extension_support(std::vector<const char*>& instance_extensions, uint32_t& instance_extensions_count);
 
         [[maybe_unused]]
         static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback

@@ -34,8 +34,8 @@ namespace halogen
 
         m_input = std::make_unique<Input>();
 
-        m_renderer = std::make_unique<Renderer>(m_window);
-        m_renderer->initialize_renderer();
+        m_renderer = std::make_unique<Renderer>();
+        m_renderer->initialize_renderer(m_window);
     }
 
     void Engine::process_input()
@@ -61,6 +61,8 @@ namespace halogen
 
     void Engine::clean_up()
     {
+//        m_renderer->close();
+//        m_window->close();
         debug::log("Cleaning up engine.");
     }
 

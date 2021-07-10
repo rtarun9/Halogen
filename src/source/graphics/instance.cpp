@@ -2,13 +2,14 @@
 
 namespace halogen
 {
-    Instance::Instance()
+    Instance::Instance() : m_vulkan_instance(VK_NULL_HANDLE), m_debug_messenger(VK_NULL_HANDLE)
     {
         /* Set application and engine name to some default values. */
         m_application_name = "Halogen Engine";
         m_engine_name = "Halogen Engine";
 
-        initialize_instance();
+        create_instance();
+        create_debug_messenger();
     }
 
     Instance::Instance(const std::string& application_name, const std::string& engine_name)
@@ -16,7 +17,7 @@ namespace halogen
         m_application_name = application_name;
         m_engine_name = engine_name;
 
-        initialize_instance();
+        create_instance();
         create_debug_messenger();
     }
 
@@ -27,12 +28,12 @@ namespace halogen
 
     Instance::~Instance()
     {
-        vkDestroyInstance(m_vulkan_instance, nullptr);
+        close();
     }
 
-    void Instance::initialize_instance()
+    void Instance::create_instance()
     {
-        if (!(configuration::DEBUG && check_validation_layer_support()))
+        if (configuration::DEBUG && !check_validation_layer_support())
         {
             debug::error("Debug mode enabled but not all validation layers found. ");
         }
@@ -45,7 +46,7 @@ namespace halogen
         application_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
         application_info.pEngineName = m_engine_name.c_str();
         application_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-        application_info.apiVersion = VK_VERSION_1_2;
+        application_info.apiVersion = VK_API_VERSION_1_2;
 
         /* Instance creation struct. */
         VkInstanceCreateInfo  instance_create_info;
@@ -56,7 +57,7 @@ namespace halogen
 
         if (configuration::DEBUG)
         {
-            instance_create_info.enabledLayerCount = configuration::VALIDATION_LAYER_COUNT;
+            instance_create_info.enabledLayerCount = static_cast<uint32_t>(configuration::VALIDATION_LAYER_COUNT);
             instance_create_info.ppEnabledLayerNames = configuration::VALIDATION_LAYERS;
         }
         else
@@ -65,8 +66,26 @@ namespace halogen
             instance_create_info.ppEnabledLayerNames = nullptr;
         }
 
-        instance_create_info.enabledExtensionCount = configuration::DEVICE_EXTENSION_COUNT;
-        instance_create_info.ppEnabledExtensionNames = configuration::DEVICE_EXTENSIONS;
+        std::vector<const char*> instance_extensions;
+        uint32_t instance_extension_count= 0;
+
+        if (!check_instance_extension_support(instance_extensions, instance_extension_count))
+        {
+            debug::error("Failed to acquire all requested instanc extensions. ");
+        }
+
+        instance_create_info.enabledExtensionCount = static_cast<uint32_t>(instance_extension_count);
+        instance_create_info.ppEnabledExtensionNames = instance_extensions.data();
+
+        VK_CHECK(vkCreateInstance(&instance_create_info, nullptr, &m_vulkan_instance), "Failed to create vulkan instance.");
+        debug::log("Created Instance.");
+    }
+
+
+    void Instance::close()
+    {
+        vk_external::destroy_debug_utils_messenger_ext(m_vulkan_instance, m_debug_messenger, nullptr);
+        vkDestroyInstance(m_vulkan_instance, nullptr);
     }
 
     void Instance::create_debug_messenger()
@@ -80,6 +99,8 @@ namespace halogen
         construct_debug_utils_messenger_create_info(&debug_utils_messenger_create_info);
 
         VK_CHECK(vk_external::create_debug_utils_messenger_EXT(m_vulkan_instance, &debug_utils_messenger_create_info, nullptr, &m_debug_messenger), "Failed to create debug messenger.");
+
+        debug::log("Created debug messenger.");
     }
 
     /* Helper functions to get and check required instance / extensions. */
@@ -94,7 +115,7 @@ namespace halogen
         std::vector<VkLayerProperties> instance_layers;
 
         vkEnumerateInstanceLayerProperties(&instance_layer_count, nullptr);
-        instance_layers.reserve(instance_layer_count);
+        instance_layers.resize(instance_layer_count);
 
         /* Pre check to see if all validation layers are being returned into the instance_layers vector. */
         VK_CHECK(vkEnumerateInstanceLayerProperties(&instance_layer_count, instance_layers.data()));
@@ -116,25 +137,23 @@ namespace halogen
                 debug::error("All instance validation layer's not found.");
             }
         }
+        return true;
     }
 
-    bool Instance::check_instance_extension_support(std::vector<VkLayerProperties> &layer)
+    bool Instance::check_instance_extension_support(std::vector<const char*>& instance_extensions, uint32_t& instance_extensions_count)
     {
-        std::vector<const char *> required_instance_extensions;
-        uint32_t required_instance_extension_count  = 0;
-
-        Platform::get_instance_extensions(required_instance_extensions, &required_instance_extension_count);
+        Platform::get_instance_extensions(instance_extensions, instance_extensions_count);
 
         //Enquiring about available extension properties
         std::vector<VkExtensionProperties> available_instance_extensions;
         uint32_t available_instance_extension_count = 0;
 
         vkEnumerateInstanceExtensionProperties(nullptr, &available_instance_extension_count, nullptr);
-        available_instance_extensions.reserve(available_instance_extension_count);
+        available_instance_extensions.resize(available_instance_extension_count);
 
         vkEnumerateInstanceExtensionProperties(nullptr, &available_instance_extension_count, available_instance_extensions.data());
 
-        for (const char *required_extension : required_instance_extensions)
+        for (const char *required_extension : instance_extensions)
         {
             bool extension_found = false;
             for (const VkExtensionProperties& available_extension : available_instance_extensions)
@@ -147,9 +166,13 @@ namespace halogen
 
             if (!extension_found)
             {
+                std::cout << required_extension;
                 debug::error("Required instance extensions not found. ");
+                return false;
             }
         }
+
+        return true;
     }
 
     VKAPI_ATTR VkBool32 VKAPI_CALL Instance::debug_callback
@@ -165,12 +188,15 @@ namespace halogen
             std::cerr << callback_data->pMessage << "[OBJECTS : ] : "
                       << callback_data->pObjects << callback_data->sType << '\n';
         }
+
+        /* For now always return VK_FALSE since it only return true in the case of layer development. */
         return VK_FALSE;
     }
 
     void Instance::construct_debug_utils_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT* debug_utils_messenger_create_info)
     {
-        debug_utils_messenger_create_info = {};
+        ASSERT(debug_utils_messenger_create_info == nullptr, "Cannot construct debug utils messenger create info struct since the pointer passed is null.");
+
         debug_utils_messenger_create_info->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debug_utils_messenger_create_info->pNext = nullptr;
         debug_utils_messenger_create_info->flags = 0;
@@ -182,5 +208,4 @@ namespace halogen
         debug_utils_messenger_create_info->pfnUserCallback = debug_callback;
         debug_utils_messenger_create_info->pUserData = this;
     }
-
 }

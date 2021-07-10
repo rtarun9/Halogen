@@ -26,7 +26,16 @@ set(SRC_FILES
         src/include/core/graphics/renderer.h
         src/source/graphics/renderer.cpp
         src/include/core/graphics/vk_debug.h
-        src/include/common.h src/include/core/graphics/instance.h src/source/graphics/instance.cpp src/include/core/graphics/vk_external.h)
+        src/include/common.h
+        src/include/core/graphics/instance.h
+        src/source/graphics/instance.cpp
+        src/include/core/graphics/vk_external.h
+        src/include/core/graphics/device.h
+        src/source/graphics/device.cpp
+        src/include/core/graphics/surface.h
+        src/include/core/graphics/swapchain.h
+        src/source/graphics/swapchain.cpp
+        src/source/graphics/surface.cpp)
 
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

@@ -21,7 +21,7 @@ namespace halogen
 
         void initialize_backend();
 
-        static void get_instance_extensions(std::vector<const char *>& instance_extensions, uint32_t *instance_extension_count);
+        static void get_instance_extensions(std::vector<const char *>& instance_extensions, uint32_t& instance_extension_count);
 
         void close_backend();
 
