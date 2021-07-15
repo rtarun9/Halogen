@@ -7,14 +7,13 @@
 #include "vk_external.h"
 #include "../platform.h"
 #include "instance.h"
-#include "swapchain.h"
+#include "renderer_settings.h"
 
+#include <unordered_set>
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
 #include <optional>
-
-class halogen::SwapchainDetails;
 
 namespace halogen
 {
@@ -27,7 +26,21 @@ namespace halogen
         [[nodiscard]]
         bool is_queue_family_indices_complete()
         {
-         return m_graphics_queue_family.has_value(); //&& m_presentation_queue_family.has_value();
+         return m_graphics_queue_family.has_value() && m_presentation_queue_family.has_value();
+        }
+
+        [[nodiscard]]
+        bool are_graphics_and_presentation_queue_equal()
+        {
+            return m_graphics_queue_family == m_presentation_queue_family;
+        }
+
+        void get_queue_families(std::vector<uint32_t>& queue_families)
+        {
+            queue_families.emplace_back(m_graphics_queue_family.value());
+            queue_families.emplace_back(m_presentation_queue_family.value());
+
+            return;
         }
     };
 
@@ -59,7 +72,7 @@ namespace halogen
         [[nodiscard]]
         bool check_device_extension_support(VkPhysicalDevice& physical_device);
 
-        QueueFamilyIndices construct_queue_family_indices(VkPhysicalDevice physical_device);
+        QueueFamilyIndices construct_queue_family_indices(VkPhysicalDevice physical_device, VkSurfaceKHR window_surface);
 
     private:
         VkPhysicalDevice m_physical_device;

@@ -35,7 +35,11 @@ set(SRC_FILES
         src/include/core/graphics/surface.h
         src/include/core/graphics/swapchain.h
         src/source/graphics/swapchain.cpp
-        src/source/graphics/surface.cpp)
+        src/source/graphics/surface.cpp
+        src/include/core/graphics/renderer_settings.h
+        src/source/graphics/renderer_settings.cpp
+        src/include/core/graphics/pipeline.h
+        src/source/graphics/pipeline.cpp)
 
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

@@ -11,6 +11,7 @@
 
 /* Vulkan specific debugging utilities. */
 
+/* TODO : missing some error checks regarding swapchain info (since program throws error but not caught be VK_CHCK. */
 /* Note : Convert to macro once function is complete.
  * Function currently not exiting program : try to do this without throwing exception (in future). */
 inline void VK_CHECK(VkResult result, std::string additional_message = "")

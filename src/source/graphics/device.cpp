@@ -58,20 +58,25 @@ namespace halogen
 
     void Device::create_logical_device(VkInstance vulkan_instance)
     {
-        const float graphics_queue_priority = 1.0f;
+        const float queue_priority = 1.0f;
+        std::vector<VkDeviceQueueCreateInfo> device_queue_create_infos = {};
 
-        /* Device Queue for graphics bit. */
-        VkDeviceQueueCreateInfo device_queue_graphics_create_info = {};
-        device_queue_graphics_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        device_queue_graphics_create_info.pNext = nullptr;
-        device_queue_graphics_create_info.flags = 0;
-        device_queue_graphics_create_info.queueFamilyIndex = m_queue_family_index.m_graphics_queue_family.value();
-        device_queue_graphics_create_info.queueCount = 1;
-        device_queue_graphics_create_info.pQueuePriorities = &graphics_queue_priority;
+        std::unordered_set unique_queues =
+        {
+            m_queue_family_index.m_graphics_queue_family.value(),
+            m_queue_family_index.m_presentation_queue_family.value()
+        };
 
-        std::vector<VkDeviceQueueCreateInfo> device_queue_create_infos;
-        device_queue_create_infos.reserve(1);
-        device_queue_create_infos.emplace_back(device_queue_graphics_create_info);
+        for (uint32_t queue_family : unique_queues)
+        {
+            VkDeviceQueueCreateInfo device_queue_create_info = {};
+            device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            device_queue_create_info.pNext = nullptr;
+            device_queue_create_info.queueFamilyIndex = queue_family;
+            device_queue_create_info.queueCount = 1;
+            device_queue_create_info.pQueuePriorities = &queue_priority;
+            device_queue_create_infos.push_back(device_queue_create_info);
+        }
 
         VkPhysicalDeviceFeatures physical_device_features = {};
 
@@ -90,18 +95,17 @@ namespace halogen
         VK_CHECK(vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_logical_device));
 
         vkGetDeviceQueue(m_logical_device, m_queue_family_index.m_graphics_queue_family.value(), 0, &m_graphics_family_queue);
-
+        vkGetDeviceQueue(m_logical_device, m_queue_family_index.m_presentation_queue_family.value(), 0, &m_presentation_family_queue);
         debug::log("Device (Logical) Created. ");
     }
 
     bool Device::check_device_suitability(VkPhysicalDevice& physical_device, VkSurfaceKHR window_surface)
     {
-        QueueFamilyIndices indices = construct_queue_family_indices(physical_device);
+        QueueFamilyIndices indices = construct_queue_family_indices(physical_device, window_surface);
 
         bool device_extension_support = check_device_extension_support(physical_device);
 
-        SwapchainDetails swapchain_details(window_surface, physical_device);
-        bool swapchain_support = swapchain_details.check_swapchain_device_support(physical_device);
+        bool swapchain_support = settings::SwapchainSettings::instance().get_swapchain_support(physical_device, window_surface);
 
         return indices.is_queue_family_indices_complete() && device_extension_support && swapchain_support;
     }
@@ -136,7 +140,7 @@ namespace halogen
         return true;
     }
 
-    QueueFamilyIndices Device::construct_queue_family_indices(VkPhysicalDevice physical_device)
+    QueueFamilyIndices Device::construct_queue_family_indices(VkPhysicalDevice physical_device, VkSurfaceKHR window_surface)
     {
         QueueFamilyIndices indices;
 
@@ -154,6 +158,13 @@ namespace halogen
             if (queue_family_property.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             {
                 indices.m_graphics_queue_family = current_index;
+            }
+
+            VkBool32 presentation_support = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, current_index, window_surface, &presentation_support);
+            if (presentation_support)
+            {
+                indices.m_presentation_queue_family = current_index;
             }
 
             current_index++;

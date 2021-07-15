@@ -2,122 +2,16 @@
 
 namespace halogen
 {
-    SwapchainDetails::SwapchainDetails(VkSurfaceKHR window_surface, VkPhysicalDevice physical_device)
+    Swapchain::Swapchain(VkInstance instance, VkDevice device, QueueFamilyIndices queue_family_index,  VkSurfaceKHR window_surface) : m_vulkan_instance(instance), m_device(device), m_window_surface(window_surface)
     {
-        get_swapchain_support(window_surface, physical_device);
+        create_swapchain(device, queue_family_index);
+        create_swapchain_image_views(device);
     }
 
-    void SwapchainDetails::get_swapchain_support(VkSurfaceKHR window_surface, VkPhysicalDevice physical_device)
+    void Swapchain::create_swapchain(VkDevice& device, QueueFamilyIndices& queue_family_index)
     {
-        /* Get base device capabilities like min/max image count, extent, transform etc. */
-        VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, window_surface, &m_surface_capabilities));
-
-        /* Get surface format details (Color space, SRGB etc). */
-        uint32_t surface_format_count = 0;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, window_surface, &surface_format_count, nullptr);
-        ASSERT(surface_format_count == 0, "Failed to find any surface formats. ");
-
-        m_surface_formats.resize(surface_format_count);
-        VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, window_surface, &surface_format_count, m_surface_formats.data()));
-
-        /* Get presentation modes (most important swapchain setup variable) : fifo / fifo relaxed / mailbox etc. */
-        uint32_t surface_present_mode_count = 0;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, window_surface, &surface_present_mode_count, nullptr);
-        ASSERT(surface_present_mode_count == 0, "Failed to find any surface presentation modes. ");
-
-        m_surface_present_modes.resize(surface_present_mode_count);
-        VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, window_surface, &surface_present_mode_count, m_surface_present_modes.data()));
-    }
-
-    bool SwapchainDetails::check_swapchain_device_support(VkPhysicalDevice physical_device)
-    {
-        bool swapchain_device_support = false;
-
-        swapchain_device_support = !(m_surface_present_modes.empty() && m_surface_formats.empty());
-        return swapchain_device_support;
-    }
-
-    SwapchainDetails::~SwapchainDetails()
-    {
-    }
-
-    SwapchainSettings::SwapchainSettings()
-    {
-    }
-
-    void SwapchainSettings::set_swapchain_setting(const SwapchainDetails &swapchain_details)
-    {
-        set_surface_capabilies(swapchain_details.m_surface_capabilities);
-        select_swapchain_surface_format(swapchain_details.m_surface_formats);
-        select_swapchain_present_mode(swapchain_details.m_surface_present_modes);
-        select_swapchain_extent(swapchain_details.m_surface_capabilities);
-    }
-
-    SwapchainSettings::~SwapchainSettings()
-    {
-    }
-
-    /* Only reason this exists is so that the swapchain base class can get details to some fundamental surface capabilities. */
-    void SwapchainSettings::set_surface_capabilies(VkSurfaceCapabilitiesKHR surface_capabilities)
-    {
-        m_surface_setting_capabilities = surface_capabilities;
-    }
-
-    void SwapchainSettings::select_swapchain_surface_format(const std::vector<VkSurfaceFormatKHR> &surface_formats)
-    {
-        for (const VkSurfaceFormatKHR& available_surface_format : surface_formats)
-        {
-            if (available_surface_format.format == VK_FORMAT_R8G8B8A8_SRGB && available_surface_format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
-            {
-                m_surface_setting_format = available_surface_format;
-                return;
-            }
-        }
-
-        m_surface_setting_format = surface_formats[0];
-    }
-
-    void SwapchainSettings::select_swapchain_present_mode(const std::vector<VkPresentModeKHR> &presentation_modes)
-    {
-        for (const VkPresentModeKHR& available_presentation_mode : presentation_modes)
-        {
-            if (available_presentation_mode == VK_PRESENT_MODE_MAILBOX_KHR)
-            {
-                m_surface_setting_present_mode = available_presentation_mode;
-                return;
-            }
-        }
-
-        m_surface_setting_present_mode = VK_PRESENT_MODE_FIFO_KHR;
-    }
-
-    void SwapchainSettings::select_swapchain_extent(const VkSurfaceCapabilitiesKHR &surface_capabilies)
-    {
-        if (surface_capabilies.currentExtent.width != UINT32_MAX || surface_capabilies.currentExtent.height != UINT32_MAX)
-        {
-            m_surface_extent = surface_capabilies.currentExtent;
-            return;
-        }
-
-
-        m_surface_extent.width = std::clamp(m_surface_extent.width, surface_capabilies.minImageExtent.width, surface_capabilies.maxImageExtent.width);
-        m_surface_extent.height = std::clamp(m_surface_extent.height, surface_capabilies.minImageExtent.width, surface_capabilies.maxImageExtent.height);
-    }
-
-    Swapchain::Swapchain(VkInstance instance, std::unique_ptr<Device>& device,  VkSurfaceKHR window_surface) : m_vulkan_instance(instance), m_device(device->get_device()), m_window_surface(window_surface)
-    {
-        m_swapchain_details = SwapchainDetails(window_surface, device->get_physical_device());
-        m_swapchain_settings = SwapchainSettings();
-
-        m_swapchain_settings.set_swapchain_setting(m_swapchain_details);
-
-        create_swapchain(device);
-    }
-
-    void Swapchain::create_swapchain(std::unique_ptr<Device>& device)
-    {
-        uint32_t image_count = m_swapchain_settings.m_surface_setting_capabilities.minImageCount + 1;
-        uint32_t max_image_count = m_swapchain_settings.m_surface_setting_capabilities.maxImageCount;
+        uint32_t image_count = settings::SwapchainSettings::instance().surface_setting_capabilities.minImageCount + 1;
+        uint32_t max_image_count = settings::SwapchainSettings::instance().surface_setting_capabilities.maxImageCount;
 
         if (max_image_count > 0 && image_count > max_image_count)
         {
@@ -127,14 +21,84 @@ namespace halogen
         VkSwapchainCreateInfoKHR swapchain_create_info = {};
         swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain_create_info.surface = m_window_surface;
-        swapchain_create_info.imageFormat = m_swapchain_settings.m_surface_setting_format.format;
-        swapchain_create_info.imageColorSpace = m_swapchain_settings.m_surface_setting_format.colorSpace;
-        swapchain_create_info.imageExtent = m_swapchain_settings.m_surface_extent;
+        swapchain_create_info.minImageCount = image_count;
+        swapchain_create_info.imageFormat = settings::SwapchainSettings::instance().surface_setting_format.format;
+        swapchain_create_info.imageColorSpace = settings::SwapchainSettings::instance().surface_setting_format.colorSpace;
+        swapchain_create_info.imageExtent = settings::SwapchainSettings::instance().surface_extent;
         swapchain_create_info.imageArrayLayers = 1;
         swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = device->get_queue_family_indices();
-        uint32_t queue_family_indices[] = {indices.m_graphics_queue_family.value(), indices.m_presentation_queue_family.value()};
+        /* Move this onto the swapchain settings static class later on. */
 
+        std::vector<uint32_t> queue_family_indices;
+        queue_family_index.get_queue_families(queue_family_indices);
+
+        if (queue_family_index.are_graphics_and_presentation_queue_equal())
+        {
+            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            swapchain_create_info.queueFamilyIndexCount = 0;
+            swapchain_create_info.pQueueFamilyIndices = nullptr;
+        }
+        else
+        {
+            swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            swapchain_create_info.queueFamilyIndexCount = queue_family_indices.size();
+            swapchain_create_info.pQueueFamilyIndices = queue_family_indices.data();
+        }
+
+        swapchain_create_info.preTransform = settings::SwapchainSettings::instance().surface_setting_capabilities.currentTransform;
+        swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapchain_create_info.presentMode = settings::SwapchainSettings::instance().surface_setting_present_mode;
+        swapchain_create_info.clipped = VK_TRUE;
+        swapchain_create_info.oldSwapchain = VK_NULL_HANDLE;
+
+        VK_CHECK(vkCreateSwapchainKHR(device, &swapchain_create_info, nullptr, &m_swapchain));
+
+        debug::log("Created Swapchain !");
+
+        vkGetSwapchainImagesKHR(device, m_swapchain, &image_count, nullptr);
+        m_swapchain_images.resize(image_count);
+
+        VK_CHECK(vkGetSwapchainImagesKHR(device, m_swapchain, &image_count, m_swapchain_images.data()));
+    }
+
+    void Swapchain::create_swapchain_image_views(VkDevice &device)
+    {
+        m_swapchain_image_views.resize(m_swapchain_images.size());
+
+        for (size_t i = 0; i < m_swapchain_images.size(); i++)
+        {
+            VkImageViewCreateInfo image_view_create_info = {};
+            image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            image_view_create_info.image = m_swapchain_images[i];
+            image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            image_view_create_info.format = settings::SwapchainSettings::instance().surface_setting_format.format;
+
+            image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+            image_view_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            image_view_create_info.subresourceRange.baseArrayLayer = 0;
+            image_view_create_info.subresourceRange.baseMipLevel = 0;
+            image_view_create_info.subresourceRange.levelCount = 1;
+            image_view_create_info.subresourceRange.baseArrayLayer = 0;
+            image_view_create_info.subresourceRange.layerCount = 1;
+
+            VK_CHECK(vkCreateImageView(device, &image_view_create_info, nullptr, &m_swapchain_image_views[i]));
+        }
+
+        debug::log("Swapchain image views created. ");
+    }
+
+    Swapchain::~Swapchain()
+    {
+        for (size_t i = 0; i < m_swapchain_image_views.size(); i++)
+        {
+            vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);
+        }
+
+        vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
     }
 }

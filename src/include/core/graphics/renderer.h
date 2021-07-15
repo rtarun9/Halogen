@@ -7,6 +7,7 @@
 #include "surface.h"
 #include "vk_debug.h"
 #include "swapchain.h"
+#include "pipeline.h"
 #include "../../log.h"
 #include "../window.h"
 
@@ -36,6 +37,8 @@ namespace halogen
         std::unique_ptr<Instance> m_instance;
         std::unique_ptr<Device> m_device;
         std::unique_ptr<Surface> m_surface;
+        std::unique_ptr<Swapchain> m_swapchain;
+        std::unique_ptr<Pipeline> m_pipeline;
     };
 }
 #endif
