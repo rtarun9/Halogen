@@ -1,10 +1,9 @@
-#include "../include/core/engine.h"
+#include "engine.h"
 
 namespace halogen
 {
     Engine::Engine()
     {
-        m_window = nullptr;
         m_engine_quit = false;
     }
 
@@ -26,23 +25,14 @@ namespace halogen
 
     void Engine::initialize()
     {
-        g_platform = std::make_unique<Platform>();
-        g_platform->initialize_backend();
-
-        m_window = std::make_shared<Window>();
-        m_window->create_window();
-
-        m_input = std::make_unique<Input>();
-
-        m_renderer = std::make_unique<Renderer>();
-        m_renderer->initialize_renderer(m_window);
+        m_renderer.initialize_renderer(m_window);
     }
 
     void Engine::process_input()
     {
-        m_input->process_inputs();
+        m_input.process_inputs();
 
-        if (m_input->quit())
+        if (m_input.quit())
         {
             m_engine_quit = true;
         }
@@ -56,13 +46,10 @@ namespace halogen
 
     void Engine::render()
     {
-        m_renderer->render();
     }
 
     void Engine::clean_up()
     {
-//        m_renderer->close();
-//        m_window->close();
         debug::log("Cleaning up engine.");
     }
 
@@ -70,5 +57,4 @@ namespace halogen
     {
         clean_up();
     }
-
 }

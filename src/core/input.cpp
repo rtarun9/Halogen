@@ -1,10 +1,24 @@
-#include "../include/core/input.h"
+#include "input.h"
 
 namespace halogen
 {
-    Input::Input()
+    Input::Input() : m_quit_application(false)
     {
-        m_quit_application = false;
+        initialize_input();
+    }
+
+    Input::~Input()
+    {
+        clean_up();
+    }
+
+    void Input::initialize_input()
+    {
+        int sdl_init_status = SDL_WasInit(SDL_INIT_EVERYTHING);
+        if (!(sdl_init_status & SDL_INIT_EVERYTHING))
+        {
+            debug::error("Cannot use input without initializing SDL first");
+        }
     }
 
     void Input::process_inputs()
@@ -36,10 +50,5 @@ namespace halogen
     void Input::clean_up()
     {
         debug::log("Cleaning up input.");
-    }
-
-    Input::~Input()
-    {
-        clean_up();
     }
 }

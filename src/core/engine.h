@@ -12,9 +12,6 @@
 
 namespace halogen
 {
-    /* Makes it easier to implement multiple platforms in the future. */
-    static std::unique_ptr<Platform> g_platform;
-
     /* Main engine class -> binds all other classes together. */
     class Engine
     {
@@ -36,10 +33,10 @@ namespace halogen
         void clean_up();
 
     private:
-        std::shared_ptr<Window> m_window;
-        std::unique_ptr<Input> m_input;
-        std::unique_ptr<Renderer> m_renderer;
-
+        Platform m_platform;
+        Window m_window;
+        Input m_input;
+        Renderer m_renderer;
         bool m_engine_quit;
     };
 }

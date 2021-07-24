@@ -8,7 +8,4 @@
 #include "core/window.h"
 #include "core/platform.h"
 
-#include "core/graphics/renderer.h"
-#include "core/graphics/vk_debug.h"
-
 #endif

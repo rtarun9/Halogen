@@ -3,13 +3,13 @@
 
 #include "../log.h"
 #include "../configuration.h"
-#include "window.h"
 
 #include <vulkan/vulkan.h>
 #include <memory>
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <cstring>
+#include <vector>
 
 namespace halogen
 {
@@ -18,14 +18,17 @@ namespace halogen
     {
     public:
         Platform();
+        ~Platform();
 
-        void initialize_backend();
+        Platform(const Platform& other) = delete;
+        Platform& operator=(const Platform& other) = delete;
 
         static void get_instance_extensions(std::vector<const char *>& instance_extensions, uint32_t& instance_extension_count);
+        static void create_window_surface(const SDL_Window& window, VkInstance instance, VkSurfaceKHR& surface);
 
+    private:
+        void initialize_backend();
         void close_backend();
-
-        ~Platform();
 
     private:
         PlatformBackend m_platform_backend;

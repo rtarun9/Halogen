@@ -10,6 +10,7 @@
 
 namespace halogen
 {
+    /* Input mapping for keyboard and mouse. Consider putting them into separate functions later on. */
      namespace InputMap
     {
         struct KeyboardInput
@@ -47,13 +48,13 @@ namespace halogen
     {
     public:
         Input();
+        ~Input();
 
+        void initialize_input();
         void process_inputs();
 
         bool is_key_pressed(InputMap::KeyboardInput::Keys key);
         bool quit();
-
-        ~Input();
 
     private:
         void clean_up();
@@ -66,4 +67,5 @@ namespace halogen
         bool m_quit_application;
     };
 }
+
 #endif

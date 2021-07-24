@@ -1,4 +1,4 @@
-#include "../include/halogen.h"
+#include "halogen.h"
 
 #include <cstdlib>
 #include <memory>

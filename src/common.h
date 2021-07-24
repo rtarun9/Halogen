@@ -6,7 +6,6 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <vulkan/vulkan.h>
 
 /* This file will be filled with useful things later on, pretty barren for now. */
 
@@ -21,7 +20,7 @@ namespace halogen::common
         if (!file.is_open())
         {
             halogen::debug::log("Could not open file !!");
-            halogen::ASSERT(true, file_path);
+            halogen::assert(true, file_path);
         }
         size_t file_buffer_size = static_cast<size_t>(file.tellg());
 
