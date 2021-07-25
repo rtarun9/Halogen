@@ -17,24 +17,24 @@ set(VK_BOOTSTRAP
 
 set(SRC_FILES
         src/main.cpp
-        src/core/window.h
-        src/core/window.cpp
-        src/configuration.h
-        src/core/input.h
-        src/core/input.cpp
-        src/core/engine.cpp
-        src/core/engine.h
-        src/log.h
-        src/halogen.h
-        src/core/platform.h
-        src/core/platform.cpp
-        src/core/graphics/renderer.h
-        src/core/graphics/renderer.cpp
-        src/common.h
-        src/core/graphics/vk_external.h
-        src/core/graphics/vk_initializers.h
-        src/core/graphics/vk_initializers.cpp
-        src/core/graphics/vk_debug.h
+        src/include/core/window.h
+        src/source/window.cpp
+        src/include/configuration.h
+        src/include/core/input.h
+        src/source/input.cpp
+        src/source/engine.cpp
+        src/include/core/engine.h
+        src/include/log.h
+        src/include/halogen.h
+        src/include/core/platform.h
+        src/source/platform.cpp
+        src/include/core/graphics/renderer.h
+        src/source/graphics/renderer.cpp
+        src/include/common.h
+        src/include/core/graphics/vk_external.h
+        src/include/core/graphics/vk_initializers.h
+        src/source/graphics/vk_initializers.cpp
+        src/include/core/graphics/vk_debug.h
         ${VK_BOOTSTRAP})
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

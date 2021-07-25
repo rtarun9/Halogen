@@ -1,4 +1,4 @@
-#include "window.h"
+#include "../include/core/window.h"
 
 namespace halogen
 {

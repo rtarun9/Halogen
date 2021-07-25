@@ -1,4 +1,4 @@
-#include "input.h"
+#include "../include/core/input.h"
 
 namespace halogen
 {

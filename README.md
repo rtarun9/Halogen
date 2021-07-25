@@ -10,6 +10,6 @@ your own paths.
 
 # External libraries
 Uses vk_bootstrap for a clean way to initialize core parts of vulkan.
-Repo to vk_bootstrap : https://github.com/charles-lunarg/vk-bootstrap.
+Link to vk_bootstrap : https://github.com/charles-lunarg/vk-bootstrap.
 
 

@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "../include/core/platform.h"
 
 namespace halogen
 {

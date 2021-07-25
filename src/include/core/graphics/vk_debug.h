@@ -7,7 +7,7 @@
 
 namespace halogen
 {
-    inline void VK_CHECK(VkResult err, const char *message)
+    inline void vk_check(VkResult err, const char *message)
     {
         if (err != VK_SUCCESS)
         {
