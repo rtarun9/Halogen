@@ -2,8 +2,7 @@
 
 namespace halogen::vkinit
 {
-    VkCommandPoolCreateInfo command_objects::command_pool_create_info(uint32_t queue_family_index,
-                                                                      VkCommandPoolCreateFlags flags)
+    VkCommandPoolCreateInfo command_objects::command_pool_create_info(uint32_t queue_family_index, VkCommandPoolCreateFlags flags)
     {
         VkCommandPoolCreateInfo create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -14,9 +13,7 @@ namespace halogen::vkinit
         return create_info;
     }
 
-    VkCommandBufferAllocateInfo command_objects::command_buffer_allocate_info(VkCommandPool command_pool,
-                                                                              uint32_t count,
-                                                                              VkCommandBufferLevel level)
+    VkCommandBufferAllocateInfo command_objects::command_buffer_allocate_info(VkCommandPool command_pool, uint32_t count, VkCommandBufferLevel level)
     {
         VkCommandBufferAllocateInfo allocate_info = {};
         allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

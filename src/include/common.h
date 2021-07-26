@@ -11,6 +11,14 @@
 
 namespace halogen::common
 {
+    //Enum for time (put it  somewhere else later)
+    namespace Time
+    {
+        //Worst code ive ever seen. Why ?
+        inline long One_Second = 1000000000;
+    }
+
+    //Read binary files for shaders.
     static std::vector<char> read_binary_file_from_path(const char *file_path)
     {
         /* relative_file_path will be useful if we change directory paths. */
@@ -20,7 +28,6 @@ namespace halogen::common
         if (!file.is_open())
         {
             halogen::debug::log("Could not open file !!");
-            halogen::assert(true, file_path);
         }
         size_t file_buffer_size = static_cast<size_t>(file.tellg());
 

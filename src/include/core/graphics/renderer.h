@@ -7,6 +7,7 @@
 #include "../../configuration.h"
 #include "../window.h"
 #include "../platform.h"
+#include "../../common.h"
 
 #include <vulkan/vulkan.h>
 #include <SDL_vulkan.h>
@@ -18,7 +19,6 @@
 
 namespace halogen
 {
-    //struct for queue families
     struct  QueueFamilyIndices
     {
         uint32_t get_graphics_queue_family()
@@ -59,26 +59,29 @@ namespace halogen
         int m_frame_number {0};
         VkExtent2D m_extent {720, 680};
 
-        VkInstance m_instance{};
-        VkDebugUtilsMessengerEXT m_debug_messenger{};
-        VkPhysicalDevice m_physical_device{};
-        VkDevice m_device{};
-        VkSurfaceKHR m_window_surface{};
+        //Core vulkan objects.
+        VkInstance m_instance;
+        VkDebugUtilsMessengerEXT m_debug_messenger;
+        VkPhysicalDevice m_physical_device;
+        VkDevice m_device;
+        VkSurfaceKHR m_window_surface;
 
-        VkSwapchainKHR m_swapchain{};
+        //Swapchain related objects.
+        VkSwapchainKHR m_swapchain;
         VkFormat m_swapchain_image_format;
         std::vector<VkImage> m_swapchain_images;
         std::vector<VkImageView> m_swapchain_image_views;
 
-        VkQueue m_graphics_queue{};
+        VkQueue m_graphics_queue;
         QueueFamilyIndices m_queue_family_indices;
 
-        VkCommandPool m_command_pool{};
-        VkCommandBuffer m_command_buffer{};
+        VkCommandPool m_command_pool;
+        VkCommandBuffer m_command_buffer;
 
-        VkRenderPass m_render_pass{};
+        VkRenderPass m_render_pass;
         std::vector<VkFramebuffer> m_framebuffers;
 
+        //Sync objects.
         VkFence m_render_fence;
         VkSemaphore m_presentation_semaphore;
         VkSemaphore m_render_semaphore;

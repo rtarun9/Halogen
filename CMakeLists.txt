@@ -16,7 +16,7 @@ set(VK_BOOTSTRAP
         third_party/vk_bootstrap_dispatch.h)
 
 set(SRC_FILES
-        src/main.cpp
+        src/source/main.cpp
         src/include/core/window.h
         src/source/window.cpp
         src/include/configuration.h

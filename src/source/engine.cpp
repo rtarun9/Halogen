@@ -46,6 +46,7 @@ namespace halogen
 
     void Engine::render()
     {
+        m_renderer.render();
     }
 
     void Engine::clean_up()

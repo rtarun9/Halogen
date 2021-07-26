@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
+//Namespace for having utility functions to create vulkan objects.
 namespace halogen::vkinit
 {
     namespace command_objects
