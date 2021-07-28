@@ -14,15 +14,18 @@ namespace halogen
     void Renderer::initialize_renderer(const Window& window)
     {
         initialize_vulkan(window);
+        initialize_pipeline();
     }
 
     void Renderer::render()
     {
-        //Block CPU until previous GPU command has not executed succesfully
+        //Block CPU until previous GPU command has not executed succesfully.
         vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, common::Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
         vk_check(vkResetFences(m_device, 1, &m_render_fence));
 
         uint32_t swapchain_image_index = -1;
+
+        //Wait on the semaphore since you dont want to prepare next frame until GPU execution is done   .
         vk_check(vkAcquireNextImageKHR(m_device, m_swapchain, common::Time::One_Second, m_presentation_semaphore, nullptr, &swapchain_image_index));
 
         //Begin rendering commands
@@ -62,6 +65,9 @@ namespace halogen
         //Bind the framebuffer, clear the image, and set image layout to that specified when creation of renderpass happened.
         vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
+        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.m_pipeline);
+        vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
+
         //Transitions the image layout so that it can be presented, as rendering is done.
         vkCmdEndRenderPass(m_command_buffer);
         vk_check(vkEndCommandBuffer(m_command_buffer));
@@ -79,20 +85,22 @@ namespace halogen
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
         };
 
+        //Wait on the presentation semaphore, since it is signalled when image from swapchain is acquired.
         submit_info.pWaitDstStageMask = &wait_stages;
         submit_info.waitSemaphoreCount = 1;
         submit_info.pWaitSemaphores = &m_presentation_semaphore;
 
+        //Signal to the render semaphore about  rendering status.
         submit_info.signalSemaphoreCount = 1;
         submit_info.pSignalSemaphores = &m_render_semaphore;
 
         submit_info.commandBufferCount = 1;
         submit_info.pCommandBuffers = &m_command_buffer;
 
+        //Block CPU until graphics commands have finished thier execution.
         vk_check(vkQueueSubmit(m_graphics_queue, 1, &submit_info, m_render_fence), "Failed to submit to queue");
 
         //Present to screen after commands are submitted
-
         VkPresentInfoKHR present_info = {};
         present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         present_info.pNext = nullptr;
@@ -100,6 +108,7 @@ namespace halogen
         present_info.pSwapchains = &m_swapchain;
         present_info.swapchainCount = 1;
 
+        //Wait on render semaphore (presentation is blocked off until rendering is complete)
         present_info.pWaitSemaphores = &m_render_semaphore;
         present_info.waitSemaphoreCount = 1;
 
@@ -187,13 +196,15 @@ namespace halogen
         //CommandPool : allocator for command buffers.
 
         //flag used here is to specify that command buffers will be reset using vkResetCommandBuffer. (Its state needs to be reset from pending to initial.
-        VkCommandPoolCreateInfo command_pool_create_info = vkinit::command_objects::command_pool_create_info(m_queue_family_indices.get_graphics_queue_family(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        VkCommandPoolCreateInfo command_pool_create_info = vkinit::command_objects::create_command_pool_create_info(
+                m_queue_family_indices.get_graphics_queue_family(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         vk_check(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pool), "Failed to create comamnd pool");
 
         //primary level command buffer, are sent into the Vkqueue's (execution port of GPU).
         //secondary level command buffers, are sub buffers to the to the primary command buffer.
-        VkCommandBufferAllocateInfo command_buffer_allocate_info = vkinit::command_objects::command_buffer_allocate_info(m_command_pool, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        VkCommandBufferAllocateInfo command_buffer_allocate_info = vkinit::command_objects::create_command_buffer_allocate_info(
+                m_command_pool, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         vk_check(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_buffer), "Failed to allocate command buffer");
     }
@@ -293,6 +304,42 @@ namespace halogen
 
         vk_check(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_presentation_semaphore), "Failed to create presentation semaphore");
         vk_check(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_render_semaphore), "Failed to create render semaphore");
+    }
+
+    //Pipeline related stuff, move later
+    void Renderer::initialize_pipeline()
+    {
+        VkShaderModule vertex_shader_module;
+        VkShaderModule fragment_shader_module;
+
+        m_pipeline.create_shader_module(m_device, "vertex_shader.spv", &vertex_shader_module);
+        m_pipeline.create_shader_module(m_device, "fragment_shader.spv", &fragment_shader_module);
+
+        VkPipelineLayoutCreateInfo pipeline_layout_create_info =  vkinit::pipeline_objects::create_pipeline_layout_create_info();
+        vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
+
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragment_shader_module));
+
+        m_pipeline_config.m_vertex_input_stage_info = vkinit::pipeline_objects::create_vertex_input_state_create_info();
+        m_pipeline_config.m_input_assembly_state_info = vkinit::pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+        m_pipeline_config.m_viewport.x = 0.0f;
+        m_pipeline_config.m_viewport.y = 0.0f;
+        m_pipeline_config.m_viewport.width = static_cast<float>(m_extent.width);
+        m_pipeline_config.m_viewport.height = static_cast<float>(m_extent.height);
+        m_pipeline_config.m_viewport.minDepth = 0.0f;
+        m_pipeline_config.m_viewport.maxDepth = 1.0f;
+
+        m_pipeline_config.m_scissor_rectangle.offset = {0, 0};
+        m_pipeline_config.m_scissor_rectangle.extent = m_extent;
+
+        m_pipeline_config.m_rasterization_state_create_info = vkinit::pipeline_objects::create_rasterization_state_create_info(VK_POLYGON_MODE_FILL);
+        m_pipeline_config.m_multisample_state_create_info = vkinit::pipeline_objects::create_multisample_state_create_info();
+        m_pipeline_config.m_color_blend_attachment = vkinit::pipeline_objects::create_color_blend_attachment_state();
+//        m_pipeline_config.m_layout = m_pipeline.m_layout;
+
+        m_pipeline.m_pipeline = m_pipeline.build_pipeline(m_device, m_render_pass, m_pipeline_config);
     }
 
     void Renderer::clean_up()

@@ -7,15 +7,13 @@
 #include <fstream>
 #include <vector>
 
-/* This file will be filled with useful things later on, pretty barren for now. */
+// This file will be filled with useful things later on, pretty barren for now.
 
 namespace halogen::common
 {
-    //Enum for time (put it  somewhere else later)
     namespace Time
     {
-        //Worst code ive ever seen. Why ?
-        inline long One_Second = 1000000000;
+        constexpr long One_Second = 1000000000;
     }
 
     //Read binary files for shaders.
@@ -27,9 +25,11 @@ namespace halogen::common
 
         if (!file.is_open())
         {
-            halogen::debug::log("Could not open file !!");
+            halogen::debug::error("Could not open file !!", "Given path : ", file_path);
         }
         size_t file_buffer_size = static_cast<size_t>(file.tellg());
+
+        //halogen::debug::error(file_buffer_size == 0, "Invalid file, size is less than 0.");
 
         std::vector<char> file_contents(file_buffer_size);
 

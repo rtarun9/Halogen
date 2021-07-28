@@ -1,7 +1,7 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-/* Multiple platform backends can be used in future. */
+//Multiple platform backends can be used in future.
 
 enum class PlatformBackend
 {
@@ -10,11 +10,11 @@ enum class PlatformBackend
     GLFW = 3,
 };
 
-/* Contains the current engine configuration details. */
+//Contains the current engine configuration details.
 
 namespace configuration
 {
-    /* Currently only SDL2 is available as a platform backend. */
+    //Currently only SDL2 is available as a platform backend.
     constexpr static PlatformBackend PLATFORM_BACKEND = PlatformBackend::SDL2;
 
     constexpr bool DEBUG = true;
@@ -22,7 +22,7 @@ namespace configuration
     constexpr int DEFAULT_WINDOW_HEIGHT  = 680;
     constexpr const char *DEFAULT_WINDOW_TITLE = "halogen engine";
 
-    //there is no need for manually enabling validation layers / device extension since vk_bootstrap already does this on its own.
+    //There is no need for manually enabling validation layers / device extension since vk_bootstrap already does this on its own.
     //    constexpr int VALIDATION_LAYER_COUNT = 1;
     //
     //    constexpr const char *VALIDATION_LAYERS[VALIDATION_LAYER_COUNT] =

@@ -7,7 +7,7 @@
 namespace halogen
 {
     //Call when some impossible conditions is faced.
-    inline void assert(bool condition, const char *message)
+    inline void ASSERT(bool condition, const char *message)
     {
         if (condition)
         {

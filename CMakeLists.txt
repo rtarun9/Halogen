@@ -35,7 +35,8 @@ set(SRC_FILES
         src/include/core/graphics/vk_initializers.h
         src/source/graphics/vk_initializers.cpp
         src/include/core/graphics/vk_debug.h
-        ${VK_BOOTSTRAP})
+        src/include/core/graphics/vk_pipeline.h
+        ${VK_BOOTSTRAP} src/source/graphics/vk_pipeline.cpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} Vulkan::Vulkan ${CMAKE_DL_LIBS})

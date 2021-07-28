@@ -8,6 +8,7 @@
 #include "../window.h"
 #include "../platform.h"
 #include "../../common.h"
+#include "vk_pipeline.h"
 
 #include <vulkan/vulkan.h>
 #include <SDL_vulkan.h>
@@ -53,6 +54,10 @@ namespace halogen
         void create_render_pass();
         void create_framebuffers();
         void create_sync_objects();
+
+        //Pipeline related stuff
+        void initialize_pipeline();
+
         void clean_up();
 
     private:
@@ -85,6 +90,10 @@ namespace halogen
         VkFence m_render_fence;
         VkSemaphore m_presentation_semaphore;
         VkSemaphore m_render_semaphore;
+
+        //Pipeline related
+        PipelineConfig m_pipeline_config;
+        Pipeline m_pipeline;
     };
 }
 #endif

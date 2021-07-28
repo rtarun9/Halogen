@@ -9,7 +9,7 @@ namespace halogen
 
     Window::Window(int width, int height, const char *title) : m_window(nullptr), m_window_height(height), m_window_width(width), m_window_title(title)
     {
-        assert(m_window_width < 0 || m_window_height < 0, "Cannot have window dimensions < 0");
+        ASSERT(m_window_width < 0 || m_window_height < 0, "Cannot have window dimensions < 0");
         create_window();
     }
 
@@ -53,7 +53,7 @@ namespace halogen
 
     const SDL_Window& Window::get_window() const
     {
-        assert(m_window == nullptr, "Cannot return reference to window since window is null.");
+        ASSERT(m_window == nullptr, "Cannot return reference to window since window is null.");
         return *m_window;
     }
 }

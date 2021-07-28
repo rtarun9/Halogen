@@ -2,4 +2,4 @@
 ./compile_shader.sh
 cmake ../
 make 
-./halogen
+./Halogen
