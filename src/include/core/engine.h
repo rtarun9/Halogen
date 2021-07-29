@@ -36,8 +36,11 @@ namespace halogen
         Platform m_platform;
         Window m_window;
         Input m_input;
-        Renderer m_renderer;
+        Renderer m_renderer {m_input};
         bool m_engine_quit;
+
+        //For testing only
+        int m_selected_pipeline {0};
     };
 }
 #endif

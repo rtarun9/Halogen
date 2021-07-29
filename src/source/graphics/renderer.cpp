@@ -2,7 +2,7 @@
 
 namespace halogen
 {
-    Renderer::Renderer()
+    Renderer::Renderer(const Input& input) : m_input(input)
     {
     }
 
@@ -14,10 +14,10 @@ namespace halogen
     void Renderer::initialize_renderer(const Window& window)
     {
         initialize_vulkan(window);
-        initialize_pipeline();
+        initialize_pipelines();
     }
 
-    void Renderer::render()
+    void Renderer::render(int selected_pipeline)
     {
         //Block CPU until previous GPU command has not executed succesfully.
         vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, common::Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
@@ -43,8 +43,7 @@ namespace halogen
         vk_check(vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info), "Failed to begin recording into command buffer.");
 
         VkClearValue clear_value;
-        float flash_value = sin(m_frame_number / 90.0f);
-        clear_value.color = {flash_value, 0.0f, 0.0f};
+        clear_value.color = {0.1f, 0.1f, 0.1f};
 
         VkRenderPassBeginInfo render_pass_begin_info = {};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -65,7 +64,17 @@ namespace halogen
         //Bind the framebuffer, clear the image, and set image layout to that specified when creation of renderpass happened.
         vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.m_pipeline);
+        //if selected pipeline is 0, do the rgb triangle. if 1, do the plain one.
+        if (selected_pipeline == 0)
+        {
+            vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rgb_triangle_pipeline);
+        }
+        else if (selected_pipeline == 1)
+        {
+            vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plain_triangle_pipeline);
+        }
+
+        //Draw 1 object, with 3 vertices.
         vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
 
         //Transitions the image layout so that it can be presented, as rendering is done.
@@ -307,21 +316,28 @@ namespace halogen
     }
 
     //Pipeline related stuff, move later
-    void Renderer::initialize_pipeline()
+    void Renderer::initialize_pipelines()
     {
-        VkShaderModule vertex_shader_module;
-        VkShaderModule fragment_shader_module;
+        //Stuff for shader stages (both fragment and vertex shader).
 
-        m_pipeline.create_shader_module(m_device, "vertex_shader.spv", &vertex_shader_module);
-        m_pipeline.create_shader_module(m_device, "fragment_shader.spv", &fragment_shader_module);
+        //Shader stuff for the rgb triangle
+        VkShaderModule rgb_vertex_shader_module;
+        VkShaderModule rgb_fragment_shader_module;
 
-        VkPipelineLayoutCreateInfo pipeline_layout_create_info =  vkinit::pipeline_objects::create_pipeline_layout_create_info();
-        vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
+        pipeline_utils::create_shader_module(m_device, "rgb_triangle_vertex_shader.spv", &rgb_vertex_shader_module);
+        pipeline_utils::create_shader_module(m_device, "rgb_triangle_fragment_shader.spv", &rgb_fragment_shader_module);
 
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, vertex_shader_module));
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, fragment_shader_module));
+        //Shader stuff for the plain triangle
+        VkShaderModule plain_vertex_shader_module;
+        VkShaderModule plain_fragment_shader_module;
 
+        pipeline_utils::create_shader_module(m_device, "plain_triangle_vertex_shader.spv", &plain_vertex_shader_module);
+        pipeline_utils::create_shader_module(m_device, "plain_triangle_fragment_shader.spv", &plain_fragment_shader_module);
+
+        //How to read vertex buffers.
         m_pipeline_config.m_vertex_input_stage_info = vkinit::pipeline_objects::create_vertex_input_state_create_info();
+
+        //What do you want to draw.
         m_pipeline_config.m_input_assembly_state_info = vkinit::pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
         m_pipeline_config.m_viewport.x = 0.0f;
@@ -334,12 +350,33 @@ namespace halogen
         m_pipeline_config.m_scissor_rectangle.offset = {0, 0};
         m_pipeline_config.m_scissor_rectangle.extent = m_extent;
 
+        //Draw filled rectangles for now..
         m_pipeline_config.m_rasterization_state_create_info = vkinit::pipeline_objects::create_rasterization_state_create_info(VK_POLYGON_MODE_FILL);
-        m_pipeline_config.m_multisample_state_create_info = vkinit::pipeline_objects::create_multisample_state_create_info();
-        m_pipeline_config.m_color_blend_attachment = vkinit::pipeline_objects::create_color_blend_attachment_state();
-//        m_pipeline_config.m_layout = m_pipeline.m_layout;
 
-        m_pipeline.m_pipeline = m_pipeline.build_pipeline(m_device, m_render_pass, m_pipeline_config);
+        m_pipeline_config.m_multisample_state_create_info = vkinit::pipeline_objects::create_multisample_state_create_info();
+
+        //No blending, but write into RGBA
+        m_pipeline_config.m_color_blend_attachment = vkinit::pipeline_objects::create_color_blend_attachment_state();
+
+        //Create and use the pipeline layout.
+        VkPipelineLayoutCreateInfo pipeline_layout_create_info =  vkinit::pipeline_objects::create_pipeline_layout_create_info();
+        vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
+
+        //Bind shader stages for the rgb triangle
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, rgb_vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, rgb_fragment_shader_module));
+
+        //Build pipeline for rgb triangle
+        m_rgb_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
+
+        //Bind shader stages for the plain triangle
+        m_pipeline_config.m_shader_stages.clear();
+
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, plain_vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, plain_fragment_shader_module));
+
+        //Build pipeline for rgb triangle
+        m_plain_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
     }
 
     void Renderer::clean_up()
@@ -361,5 +398,7 @@ namespace halogen
         vkDestroySurfaceKHR(m_instance, m_window_surface, nullptr);
         vkb::destroy_debug_utils_messenger(m_instance, m_debug_messenger);
         vkDestroyInstance(m_instance, nullptr);
+
+        debug::warning("For now, none of the pipeline related objects are being cleared up. This is the next thing on the TODO list.");
     }
 }

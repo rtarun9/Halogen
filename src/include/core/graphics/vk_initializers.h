@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 //Namespace for having utility functions to create vulkan objects.
+//TODO : Naming convention is pretty bad, but not to be concerned with it now.
 namespace halogen::vkinit
 {
     namespace command_objects
@@ -18,7 +19,10 @@ namespace halogen::vkinit
     {
         VkShaderModuleCreateInfo create_shader_module_create_info(const std::vector<char>& code);
         VkPipelineShaderStageCreateInfo create_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shader_module);
+
+        [[maybe_unused]]
         VkPipelineVertexInputStateCreateInfo create_vertex_input_state_create_info();
+
         VkPipelineInputAssemblyStateCreateInfo create_input_assembly_state_create_info(VkPrimitiveTopology topology);
         VkPipelineRasterizationStateCreateInfo create_rasterization_state_create_info(VkPolygonMode polygon_mode);
         VkPipelineMultisampleStateCreateInfo create_multisample_state_create_info();

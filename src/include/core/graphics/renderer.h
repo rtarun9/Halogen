@@ -40,11 +40,11 @@ namespace halogen
     class Renderer
     {
     public:
-        Renderer();
+        Renderer(const Input& input);
         ~Renderer();
 
         void initialize_renderer(const Window& window);
-        void render();
+        void render(int selected_pipeline);
 
     private:
         void initialize_vulkan(const Window& window);
@@ -56,11 +56,16 @@ namespace halogen
         void create_sync_objects();
 
         //Pipeline related stuff
-        void initialize_pipeline();
+        void initialize_pipelines();
 
         void clean_up();
 
     private:
+        //for non - renderer related stuff.
+
+        //TODO : Dont like how this isnt a const & : PLEASE change later and make input static or something.
+        Input m_input;
+
         int m_frame_number {0};
         VkExtent2D m_extent {720, 680};
 
@@ -93,7 +98,8 @@ namespace halogen
 
         //Pipeline related
         PipelineConfig m_pipeline_config;
-        Pipeline m_pipeline;
+        VkPipeline m_rgb_triangle_pipeline;
+        VkPipeline m_plain_triangle_pipeline;
     };
 }
 #endif
