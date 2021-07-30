@@ -100,6 +100,9 @@ namespace halogen
         PipelineConfig m_pipeline_config;
         VkPipeline m_rgb_triangle_pipeline;
         VkPipeline m_plain_triangle_pipeline;
+
+        //For clean up
+        DeletionQueue m_deletion_queue;
     };
 }
 #endif

@@ -11,9 +11,9 @@ find_package(Vulkan REQUIRED)
 include_directories(${VULKAN_INCLUDE_DIRS})
 
 set(VK_BOOTSTRAP
-        third_party/vk_bootstrap.h
-        third_party/vk_bootstrap.cpp
-        third_party/vk_bootstrap_dispatch.h)
+        third_party/vk_bootstrap/vk_bootstrap.h
+        third_party/vk_bootstrap/vk_bootstrap.cpp
+        third_party/vk_bootstrap/vk_bootstrap_dispatch.h)
 
 set(SRC_FILES
         src/source/main.cpp
@@ -36,7 +36,10 @@ set(SRC_FILES
         src/source/graphics/vk_initializers.cpp
         src/include/core/graphics/vk_debug.h
         src/include/core/graphics/vk_pipeline.h
-        ${VK_BOOTSTRAP} src/source/graphics/vk_pipeline.cpp)
+        src/source/graphics/vk_pipeline.cpp
+        ${VK_BOOTSTRAP})
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+#dl_libs specifically used for vk_bootstrap (since it loads vulkan on its own using dl_open).
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} Vulkan::Vulkan ${CMAKE_DL_LIBS})

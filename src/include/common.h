@@ -6,10 +6,12 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <deque>
+#include <functional>
 
 // This file will be filled with useful things later on, pretty barren for now.
 
-namespace halogen::common
+namespace halogen
 {
     namespace Time
     {
@@ -39,6 +41,34 @@ namespace halogen::common
         file.close();
         return file_contents;
     }
+
+    //TODO : Move to a vk_types file or something similar.
+    //Destruction queue : Used for deletion of vulkan objects ONLY
+    struct DeletionQueue
+    {
+        std::deque<std::function<void()>> deletors;
+
+        void push_function(std::function<void()>&& function)
+        {
+            deletors.push_back(function);
+        }
+
+        //This will call the lambda functions in the same order that they were queued in. (since its a double ended queue, it follows the FIFO principle).
+        //Not a very efficient way, but gets the job done.
+
+        void flush()
+        {
+            //Using rbegin and rend here since we want to iterate over the double ended queue in reverse, because
+            //Usually objects in vulkan are deleted in the reverse order they were implemended.
+            for (auto it = deletors.rbegin(); it != deletors.rend(); it++)
+            {
+                //Dereference the function and call them.
+                (*it)();
+            }
+
+            deletors.clear();
+        }
+    };
 }
 
 #endif

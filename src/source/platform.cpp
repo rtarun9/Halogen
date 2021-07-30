@@ -47,6 +47,7 @@ namespace halogen
         SDL_Vulkan_CreateSurface((SDL_Window*)(&window), instance, (&surface));
     }
 
+
     void Platform::close_backend()
     {
         if (m_platform_backend == PlatformBackend::SDL2)

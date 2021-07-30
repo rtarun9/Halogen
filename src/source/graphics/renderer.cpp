@@ -20,13 +20,13 @@ namespace halogen
     void Renderer::render(int selected_pipeline)
     {
         //Block CPU until previous GPU command has not executed succesfully.
-        vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, common::Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
+        vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
         vk_check(vkResetFences(m_device, 1, &m_render_fence));
 
         uint32_t swapchain_image_index = -1;
 
         //Wait on the semaphore since you dont want to prepare next frame until GPU execution is done   .
-        vk_check(vkAcquireNextImageKHR(m_device, m_swapchain, common::Time::One_Second, m_presentation_semaphore, nullptr, &swapchain_image_index));
+        vk_check(vkAcquireNextImageKHR(m_device, m_swapchain, Time::One_Second, m_presentation_semaphore, nullptr, &swapchain_image_index));
 
         //Begin rendering commands
 
@@ -43,7 +43,7 @@ namespace halogen
         vk_check(vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info), "Failed to begin recording into command buffer.");
 
         VkClearValue clear_value;
-        clear_value.color = {0.1f, 0.1f, 0.1f};
+        clear_value.color = {0.0f, 0.0f, 0.1f};
 
         VkRenderPassBeginInfo render_pass_begin_info = {};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -197,6 +197,13 @@ namespace halogen
         m_swapchain_images = vkb_swapchain.get_images().value();
         m_swapchain_image_views = vkb_swapchain.get_image_views().value();
         m_swapchain_image_format = vkb_swapchain.image_format;
+
+        //Push into deletion queue
+        //Mosty using [=] capture for now since creating lambda functions that create thier own copies (no referencing going on).
+        m_deletion_queue.push_function([=]()
+        {
+            vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+        });
     }
 
     //Create command buffers and command objects.
@@ -216,6 +223,12 @@ namespace halogen
                 m_command_pool, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         vk_check(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_buffer), "Failed to allocate command buffer");
+
+        //Delete the command pools (command buffers will be deleted with this as well)
+        m_deletion_queue.push_function([=]()
+        {
+            vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+        });
     }
 
     //Creating of renderpass
@@ -267,6 +280,12 @@ namespace halogen
         render_pass_create_info.pSubpasses = &subpass_description;
 
         vk_check(vkCreateRenderPass(m_device, &render_pass_create_info, nullptr, &m_render_pass), "Failed to create render pass.");
+
+        //Add renderpass deletion to the deletion queue
+        m_deletion_queue.push_function([=] ()
+        {
+            vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+        });
     }
 
     //Creation of frame buffers (made according to renderpass, which is created before this).
@@ -289,6 +308,14 @@ namespace halogen
         {
             framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
             vk_check(vkCreateFramebuffer(m_device, &framebuffer_create_info, nullptr, &m_framebuffers[i]), "Failed to create framebuffers");
+
+            //Add framebuffer deletion to deletion queue
+            m_deletion_queue.push_function([=]()
+            {
+                //Note : Adding image view deletion code here as well since both have to be deleted together anyway
+                vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);
+                vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);
+            });
         }
     }
 
@@ -305,6 +332,12 @@ namespace halogen
 
         vk_check(vkCreateFence(m_device, &fence_create_info, nullptr, &m_render_fence), "Failed to create fence.");
 
+        //Implement deletion queue for fences
+        m_deletion_queue.push_function([=]()
+        {
+            vkDestroyFence(m_device, m_render_fence, nullptr);
+        });
+
         //Create semaphores for GPU - GPU communication.
         VkSemaphoreCreateInfo semaphore_create_info = {};
         semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -313,6 +346,13 @@ namespace halogen
 
         vk_check(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_presentation_semaphore), "Failed to create presentation semaphore");
         vk_check(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_render_semaphore), "Failed to create render semaphore");
+
+        //Implement deletion queue for semaphores.
+        m_deletion_queue.push_function([=]()
+        {
+           vkDestroySemaphore(m_device, m_presentation_semaphore, nullptr);
+           vkDestroySemaphore(m_device, m_render_semaphore, nullptr);
+        });
     }
 
     //Pipeline related stuff, move later
@@ -335,10 +375,10 @@ namespace halogen
         pipeline_utils::create_shader_module(m_device, "plain_triangle_fragment_shader.spv", &plain_fragment_shader_module);
 
         //How to read vertex buffers.
-        m_pipeline_config.m_vertex_input_stage_info = vkinit::pipeline_objects::create_vertex_input_state_create_info();
+        m_pipeline_config.m_vertex_input_stage_info = pipeline_objects::create_vertex_input_state_create_info();
 
         //What do you want to draw.
-        m_pipeline_config.m_input_assembly_state_info = vkinit::pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        m_pipeline_config.m_input_assembly_state_info = pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
         m_pipeline_config.m_viewport.x = 0.0f;
         m_pipeline_config.m_viewport.y = 0.0f;
@@ -351,20 +391,20 @@ namespace halogen
         m_pipeline_config.m_scissor_rectangle.extent = m_extent;
 
         //Draw filled rectangles for now..
-        m_pipeline_config.m_rasterization_state_create_info = vkinit::pipeline_objects::create_rasterization_state_create_info(VK_POLYGON_MODE_FILL);
+        m_pipeline_config.m_rasterization_state_create_info = pipeline_objects::create_rasterization_state_create_info(VK_POLYGON_MODE_FILL);
 
-        m_pipeline_config.m_multisample_state_create_info = vkinit::pipeline_objects::create_multisample_state_create_info();
+        m_pipeline_config.m_multisample_state_create_info = pipeline_objects::create_multisample_state_create_info();
 
         //No blending, but write into RGBA
-        m_pipeline_config.m_color_blend_attachment = vkinit::pipeline_objects::create_color_blend_attachment_state();
+        m_pipeline_config.m_color_blend_attachment = pipeline_objects::create_color_blend_attachment_state();
 
         //Create and use the pipeline layout.
-        VkPipelineLayoutCreateInfo pipeline_layout_create_info =  vkinit::pipeline_objects::create_pipeline_layout_create_info();
+        VkPipelineLayoutCreateInfo pipeline_layout_create_info =  pipeline_objects::create_pipeline_layout_create_info();
         vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
 
         //Bind shader stages for the rgb triangle
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, rgb_vertex_shader_module));
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, rgb_fragment_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, rgb_vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, rgb_fragment_shader_module));
 
         //Build pipeline for rgb triangle
         m_rgb_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
@@ -372,33 +412,39 @@ namespace halogen
         //Bind shader stages for the plain triangle
         m_pipeline_config.m_shader_stages.clear();
 
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, plain_vertex_shader_module));
-        m_pipeline_config.m_shader_stages.push_back(vkinit::pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, plain_fragment_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, plain_vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, plain_fragment_shader_module));
 
         //Build pipeline for rgb triangle
         m_plain_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
+
+        //Delete shader modules (no need for this to be done in the deletion queue, just plain old deletion).
+        vkDestroyShaderModule(m_device, rgb_vertex_shader_module, nullptr);
+        vkDestroyShaderModule(m_device, rgb_fragment_shader_module, nullptr);
+
+        vkDestroyShaderModule(m_device, plain_vertex_shader_module, nullptr);
+        vkDestroyShaderModule(m_device, plain_fragment_shader_module, nullptr);
+
+        //Deletion queue for pipeline related objects
+        m_deletion_queue.push_function([=]()
+        {
+            vkDestroyPipeline(m_device, m_rgb_triangle_pipeline, nullptr);
+            vkDestroyPipeline(m_device, m_plain_triangle_pipeline, nullptr);
+
+            vkDestroyPipelineLayout(m_device, m_pipeline_config.m_layout, nullptr);
+        });
     }
 
     void Renderer::clean_up()
     {
-        vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+        //Make sure GPU has stopped doing all its operations before deletion
+        vkWaitForFences(m_device, 1, &m_render_fence, true, Time::One_Second);
 
-        vkDestroyCommandPool(m_device, m_command_pool, nullptr);
-        vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
-
-        //No need to destroy images as they are deleted along with the swapchain.
-        //Breaking  the rule of "destroy in the reverse order of creation" since framebuffers are created from images.
-        for (int i = 0; i < m_swapchain_image_views.size(); i++)
-        {
-            vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);
-            vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);
-        }
+        m_deletion_queue.flush();
 
         vkDestroyDevice(m_device, nullptr);
         vkDestroySurfaceKHR(m_instance, m_window_surface, nullptr);
         vkb::destroy_debug_utils_messenger(m_instance, m_debug_messenger);
         vkDestroyInstance(m_instance, nullptr);
-
-        debug::warning("For now, none of the pipeline related objects are being cleared up. This is the next thing on the TODO list.");
     }
 }

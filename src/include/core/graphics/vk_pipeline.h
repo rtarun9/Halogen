@@ -35,6 +35,22 @@ namespace halogen
     {
         void create_shader_module(VkDevice device, const char *shader_file_path, VkShaderModule *shader_module);
     };
+
+    //Similar to command_objects, but for pipelines.
+    namespace pipeline_objects
+    {
+        VkShaderModuleCreateInfo create_shader_module_create_info(const std::vector<char>& code);
+        VkPipelineShaderStageCreateInfo create_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shader_module);
+
+        [[maybe_unused]]
+        VkPipelineVertexInputStateCreateInfo create_vertex_input_state_create_info();
+
+        VkPipelineInputAssemblyStateCreateInfo create_input_assembly_state_create_info(VkPrimitiveTopology topology);
+        VkPipelineRasterizationStateCreateInfo create_rasterization_state_create_info(VkPolygonMode polygon_mode);
+        VkPipelineMultisampleStateCreateInfo create_multisample_state_create_info();
+        VkPipelineColorBlendAttachmentState create_color_blend_attachment_state();
+        VkPipelineLayoutCreateInfo create_pipeline_layout_create_info();
+    }
 }
 
 #endif

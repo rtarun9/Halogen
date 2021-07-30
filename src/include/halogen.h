@@ -12,5 +12,6 @@
 #include "core/graphics/vk_debug.h"
 #include "core/graphics/vk_external.h"
 #include "core/graphics/vk_initializers.h"
+#include "core/graphics/vk_pipeline.h"
 
 #endif

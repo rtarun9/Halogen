@@ -41,11 +41,11 @@ namespace halogen
         //Not focussing on clean code here since this is just a tester.
         if (m_input.is_key_pressed(InputMap::KeyboardInput::A))
         {
-            m_selected_pipeline = 0;
+            m_selected_pipeline = 1;
         }
         else
         {
-            m_selected_pipeline = 1;
+            m_selected_pipeline = 0;
         }
     }
 
