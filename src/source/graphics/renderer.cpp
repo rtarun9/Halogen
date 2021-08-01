@@ -1,5 +1,9 @@
 #include "../../include/core/graphics/renderer.h"
 
+//For Vulkan memory allocator
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 namespace halogen
 {
     Renderer::Renderer(const Input& input) : m_input(input)
@@ -14,10 +18,13 @@ namespace halogen
     void Renderer::initialize_renderer(const Window& window)
     {
         initialize_vulkan(window);
+
+        load_mesh();
+
         initialize_pipelines();
     }
 
-    void Renderer::render(int selected_pipeline)
+    void Renderer::render()
     {
         //Block CPU until previous GPU command has not executed succesfully.
         vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
@@ -64,18 +71,14 @@ namespace halogen
         //Bind the framebuffer, clear the image, and set image layout to that specified when creation of renderpass happened.
         vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        //if selected pipeline is 0, do the rgb triangle. if 1, do the plain one.
-        if (selected_pipeline == 0)
-        {
-            vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rgb_triangle_pipeline);
-        }
-        else if (selected_pipeline == 1)
-        {
-            vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plain_triangle_pipeline);
-        }
+        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
+
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_allocated_buffer.m_buffer, &offset);
+
 
         //Draw 1 object, with 3 vertices.
-        vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
+        vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
 
         //Transitions the image layout so that it can be presented, as rendering is done.
         vkCmdEndRenderPass(m_command_buffer);
@@ -175,6 +178,14 @@ namespace halogen
 
         m_graphics_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
         m_queue_family_indices.m_graphics_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
+
+        //Initializing VMA here as well
+        VmaAllocatorCreateInfo vma_allocator_create_info = {};
+        vma_allocator_create_info.instance = m_instance;
+        vma_allocator_create_info.device = m_device;
+        vma_allocator_create_info.physicalDevice = m_physical_device;
+
+        vk_check(vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator), "Failed to initialize VMA");
     }
 
     //Uses vk_boostrap to create swapchain.
@@ -361,21 +372,20 @@ namespace halogen
         //Stuff for shader stages (both fragment and vertex shader).
 
         //Shader stuff for the rgb triangle
-        VkShaderModule rgb_vertex_shader_module;
-        VkShaderModule rgb_fragment_shader_module;
+        VkShaderModule triangle_vertex_shader_module;
+        VkShaderModule triangle_fragment_shader_module;
 
-        pipeline_utils::create_shader_module(m_device, "rgb_triangle_vertex_shader.spv", &rgb_vertex_shader_module);
-        pipeline_utils::create_shader_module(m_device, "rgb_triangle_fragment_shader.spv", &rgb_fragment_shader_module);
+        pipeline_utils::create_shader_module(m_device, "vertex_buffer_vertex_shader.spv", &triangle_vertex_shader_module);
+        pipeline_utils::create_shader_module(m_device, "vertex_buffer_fragment_shader.spv", &triangle_fragment_shader_module);
 
-        //Shader stuff for the plain triangle
-        VkShaderModule plain_vertex_shader_module;
-        VkShaderModule plain_fragment_shader_module;
-
-        pipeline_utils::create_shader_module(m_device, "plain_triangle_vertex_shader.spv", &plain_vertex_shader_module);
-        pipeline_utils::create_shader_module(m_device, "plain_triangle_fragment_shader.spv", &plain_fragment_shader_module);
+        VertexInputDescription vertex_input_description = Vertex::get_vertex_input_description();
 
         //How to read vertex buffers.
         m_pipeline_config.m_vertex_input_stage_info = pipeline_objects::create_vertex_input_state_create_info();
+        m_pipeline_config.m_vertex_input_stage_info.pVertexAttributeDescriptions = vertex_input_description.m_attribute_description.data();
+        m_pipeline_config.m_vertex_input_stage_info.vertexAttributeDescriptionCount = vertex_input_description.m_attribute_description.size();
+        m_pipeline_config.m_vertex_input_stage_info.pVertexBindingDescriptions = vertex_input_description.m_binding_description.data();
+        m_pipeline_config.m_vertex_input_stage_info.vertexBindingDescriptionCount = vertex_input_description.m_binding_description.size();
 
         //What do you want to draw.
         m_pipeline_config.m_input_assembly_state_info = pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -403,36 +413,73 @@ namespace halogen
         vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
 
         //Bind shader stages for the rgb triangle
-        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, rgb_vertex_shader_module));
-        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, rgb_fragment_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, triangle_vertex_shader_module));
+        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, triangle_fragment_shader_module));
 
         //Build pipeline for rgb triangle
-        m_rgb_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
-
-        //Bind shader stages for the plain triangle
-        m_pipeline_config.m_shader_stages.clear();
-
-        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, plain_vertex_shader_module));
-        m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, plain_fragment_shader_module));
-
-        //Build pipeline for rgb triangle
-        m_plain_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
+        m_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
 
         //Delete shader modules (no need for this to be done in the deletion queue, just plain old deletion).
-        vkDestroyShaderModule(m_device, rgb_vertex_shader_module, nullptr);
-        vkDestroyShaderModule(m_device, rgb_fragment_shader_module, nullptr);
-
-        vkDestroyShaderModule(m_device, plain_vertex_shader_module, nullptr);
-        vkDestroyShaderModule(m_device, plain_fragment_shader_module, nullptr);
+        vkDestroyShaderModule(m_device, triangle_vertex_shader_module, nullptr);
+        vkDestroyShaderModule(m_device, triangle_fragment_shader_module, nullptr);
 
         //Deletion queue for pipeline related objects
         m_deletion_queue.push_function([=]()
         {
-            vkDestroyPipeline(m_device, m_rgb_triangle_pipeline, nullptr);
-            vkDestroyPipeline(m_device, m_plain_triangle_pipeline, nullptr);
+            vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);
 
             vkDestroyPipelineLayout(m_device, m_pipeline_config.m_layout, nullptr);
         });
+    }
+
+    //Mesh related functions
+    void Renderer::load_mesh()
+    {
+        m_triangle_mesh.m_vertices.resize(3);
+
+        m_triangle_mesh.m_vertices[0].m_position = glm::vec3(0.0f, -1.0f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_position = glm::vec3(-1.0f, 1.0f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_position = glm::vec3(1.0f, 1.0f, 0.0f);
+
+        m_triangle_mesh.m_vertices[0].m_color = glm::vec3(1.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_color = glm::vec3(0.0f, 1.0f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_color = glm::vec3(0.0f, 0.0f, 1.0f);
+
+        //Dont care about normals for now, so setting everything to zero by default.
+        m_triangle_mesh.m_vertices[0].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        upload_mesh(m_triangle_mesh);
+    }
+
+    void Renderer::upload_mesh(Mesh &mesh)
+    {
+        //Allocate the vertex buffer
+        VkBufferCreateInfo vertex_buffer_create_info = {};
+        vertex_buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        vertex_buffer_create_info.size = mesh.m_vertices.size() * sizeof(Vertex);
+
+        //Tell vulkan this buffer will be used as a vertex buffer
+        vertex_buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+        //This data should we writable by CPU, but should be read from GPU
+        VmaAllocationCreateInfo vma_allocation_create_info = {};
+        vma_allocation_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+        vk_check(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &mesh.m_allocated_buffer.m_buffer, &mesh.m_allocated_buffer.m_allocation, nullptr), "Failed to create and allocate vertex buffer");
+
+        //Add to deletion queue
+        m_deletion_queue.push_function([=]()
+        {
+            vmaDestroyBuffer(m_vma_allocator, mesh.m_allocated_buffer.m_buffer, mesh.m_allocated_buffer.m_allocation);
+        });
+
+        //Copy your mesh.m_vertices data into a region were GPU can read from (this is some memory on the cpu accessable by the GPU)
+        void *data;
+        vmaMapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation, &data);
+        memcpy(data, mesh.m_vertices.data(), mesh.m_vertices.size() * sizeof(Vertex));
+        vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation);
     }
 
     void Renderer::clean_up()
@@ -442,9 +489,12 @@ namespace halogen
 
         m_deletion_queue.flush();
 
+        vmaDestroyAllocator(m_vma_allocator);
+
         vkDestroyDevice(m_device, nullptr);
         vkDestroySurfaceKHR(m_instance, m_window_surface, nullptr);
         vkb::destroy_debug_utils_messenger(m_instance, m_debug_messenger);
+
         vkDestroyInstance(m_instance, nullptr);
     }
 }

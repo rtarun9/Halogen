@@ -1,5 +1,4 @@
-#ifndef VK_TYPES_H
-#define VK_TYPES_H
+#pragma once
 
 #include "../../log.h"
 #include "../../common.h"
@@ -52,5 +51,3 @@ namespace halogen
         VkPipelineLayoutCreateInfo create_pipeline_layout_create_info();
     }
 }
-
-#endif

@@ -36,17 +36,6 @@ namespace halogen
         {
             m_engine_quit = true;
         }
-
-        //Press 'A' to switch between pipelines.
-        //Not focussing on clean code here since this is just a tester.
-        if (m_input.is_key_pressed(InputMap::KeyboardInput::A))
-        {
-            m_selected_pipeline = 1;
-        }
-        else
-        {
-            m_selected_pipeline = 0;
-        }
     }
 
     void Engine::update()
@@ -56,7 +45,7 @@ namespace halogen
 
     void Engine::render()
     {
-        m_renderer.render(m_selected_pipeline);
+        m_renderer.render();
     }
 
     void Engine::clean_up()

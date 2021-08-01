@@ -1,5 +1,4 @@
-#ifndef VK_EXTERNAL_H
-#define VK_EXTERNAL_H
+#pragma once
 
 namespace halogen::vk_external
 {
@@ -41,4 +40,3 @@ namespace halogen::vk_external
     }
 }
 
-#endif

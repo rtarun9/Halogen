@@ -1,5 +1,4 @@
-#ifndef INPUT_H
-#define INPUT_H
+#pragma once
 
 #include "../log.h"
 
@@ -67,5 +66,3 @@ namespace halogen
         bool m_quit_application;
     };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #include "log.h"
 
@@ -71,4 +70,3 @@ namespace halogen
     };
 }
 
-#endif

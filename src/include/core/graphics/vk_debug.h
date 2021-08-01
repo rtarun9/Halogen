@@ -1,5 +1,4 @@
-#ifndef VK_DEBUG_H
-#define VK_DEBUG_H
+#pragma once
 
 #include "../../log.h"
 
@@ -17,4 +16,4 @@ namespace halogen
     }
 }
 
-#endif
+

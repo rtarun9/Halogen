@@ -1,5 +1,4 @@
-#ifndef WINDOW_H
-#define WINDOW_H
+#pragma once
 
 #include "../configuration.h"
 #include "../log.h"
@@ -35,4 +34,3 @@ namespace halogen
     };
 }
 
-#endif

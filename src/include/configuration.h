@@ -1,5 +1,4 @@
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#pragma once
 
 //Multiple platform backends can be used in future.
 
@@ -36,4 +35,3 @@ namespace configuration
     //        "VK_KHR_swapchain"
     //    };
 }
-#endif

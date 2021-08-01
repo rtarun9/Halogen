@@ -1,5 +1,4 @@
-#ifndef RENDERER_H
-#define RENDERER_H
+#pragma once
 
 #include "../../log.h"
 #include "vk_debug.h"
@@ -9,6 +8,9 @@
 #include "../platform.h"
 #include "../../common.h"
 #include "vk_pipeline.h"
+#include "vk_types.h"
+#include "vk_mesh.h"
+
 
 #include <vulkan/vulkan.h>
 #include <SDL_vulkan.h>
@@ -44,7 +46,7 @@ namespace halogen
         ~Renderer();
 
         void initialize_renderer(const Window& window);
-        void render(int selected_pipeline);
+        void render();
 
     private:
         void initialize_vulkan(const Window& window);
@@ -58,6 +60,9 @@ namespace halogen
         //Pipeline related stuff
         void initialize_pipelines();
 
+        void load_mesh();
+        void upload_mesh(Mesh& mesh);
+
         void clean_up();
 
     private:
@@ -67,7 +72,7 @@ namespace halogen
         Input m_input;
 
         int m_frame_number {0};
-        VkExtent2D m_extent {720, 680};
+        VkExtent2D m_extent {1080, 720};
 
         //Core vulkan objects.
         VkInstance m_instance;
@@ -98,11 +103,16 @@ namespace halogen
 
         //Pipeline related
         PipelineConfig m_pipeline_config;
-        VkPipeline m_rgb_triangle_pipeline;
-        VkPipeline m_plain_triangle_pipeline;
+        VkPipeline m_triangle_pipeline;
 
         //For clean up
         DeletionQueue m_deletion_queue;
+
+        //For memory allocation
+        VmaAllocator m_vma_allocator;
+
+        //Meshes
+        Mesh m_triangle_mesh;
+
     };
 }
-#endif

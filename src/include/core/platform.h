@@ -1,5 +1,4 @@
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#pragma once
 
 #include "../log.h"
 #include "../configuration.h"
@@ -34,4 +33,3 @@ namespace halogen
         PlatformBackend m_platform_backend;
     };
 }
-#endif

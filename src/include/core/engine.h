@@ -1,5 +1,4 @@
-#ifndef ENGINE_H
-#define ENGINE_H
+#pragma once
 
 #include "window.h"
 #include "input.h"
@@ -34,13 +33,9 @@ namespace halogen
 
     private:
         Platform m_platform;
-        Window m_window;
+        Window m_window {1080, 720, "Halogen"};
         Input m_input;
         Renderer m_renderer {m_input};
         bool m_engine_quit;
-
-        //For testing only
-        int m_selected_pipeline {0};
     };
 }
-#endif

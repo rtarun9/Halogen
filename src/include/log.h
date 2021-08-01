@@ -1,5 +1,4 @@
-#ifndef LOG_H
-#define LOG_H
+#pragma once
 
 #include <iostream>
 #include <cstdlib>
@@ -59,4 +58,3 @@ namespace halogen
     }
 }
 
-#endif
