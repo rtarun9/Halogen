@@ -26,6 +26,8 @@ namespace halogen
 
     void Renderer::render()
     {
+        Timer::instance().m_frame_start = std::chrono::high_resolution_clock::now();
+
         //Block CPU until previous GPU command has not executed succesfully.
         vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
         vk_check(vkResetFences(m_device, 1, &m_render_fence));
@@ -73,10 +75,24 @@ namespace halogen
 
         vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
 
+        //Bind vertex buffer (of mesh) with 0 offset.
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_allocated_buffer.m_buffer, &offset);
 
+        //Temporary : for testing out push constants
+        glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, -1.0f);
+        glm::mat4 view_matrix = glm::translate(glm::mat4(1.0f), camera_position);
+        glm::mat4 projection_matrix = glm::perspective(glm::radians(70.0f), (float)m_extent.width / m_extent.height, 0.1f, 1000.0f);
+        projection_matrix[1][1] *= -1;
 
+        glm::mat4 model_matrix = glm::rotate(glm::mat4(1.0f), glm::radians(m_frame_number * 0.3f), glm::vec3(0, 1, 0));
+
+        glm::mat4 mesh_matrix = projection_matrix * view_matrix * model_matrix;
+
+        MeshPushConstants constants;
+        constants.m_render_matrix = mesh_matrix;
+
+        vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
         //Draw 1 object, with 3 vertices.
         vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
 
@@ -129,6 +145,8 @@ namespace halogen
         vk_check(vkQueuePresentKHR(m_graphics_queue, &present_info));
 
         m_frame_number++;
+        Timer::instance().m_frame_end = std::chrono::high_resolution_clock::now();
+        Timer::instance().m_frame_time = std::chrono::duration_cast<std::chrono::duration<double>>(Timer::instance().m_frame_end - Timer::instance().m_frame_start);
     }
 
     void Renderer::initialize_vulkan(const Window& window)
@@ -193,6 +211,7 @@ namespace halogen
     {
         vkb::SwapchainBuilder swapchain_builder {m_physical_device, m_device, m_window_surface};
 
+        //Gpu never idles here (since mail box is used). If power consumption is a issue, use V-Sync (with FIFO present modes, and plus its guarenteed to exist).
         vkb::Swapchain vkb_swapchain = swapchain_builder
                     .use_default_format_selection()
                     .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
@@ -242,7 +261,7 @@ namespace halogen
         });
     }
 
-    //Creating of renderpass
+    //Creating of renderpass (blue print of output framebuffer)
     void Renderer::create_render_pass()
     {
         //Point of renderpass : store details of the image we are writing into (renderpass writes into the framebuffer, which links to the actual image we are writing into).
@@ -382,21 +401,25 @@ namespace halogen
 
         //How to read vertex buffers.
         m_pipeline_config.m_vertex_input_stage_info = pipeline_objects::create_vertex_input_state_create_info();
-        m_pipeline_config.m_vertex_input_stage_info.pVertexAttributeDescriptions = vertex_input_description.m_attribute_description.data();
-        m_pipeline_config.m_vertex_input_stage_info.vertexAttributeDescriptionCount = vertex_input_description.m_attribute_description.size();
-        m_pipeline_config.m_vertex_input_stage_info.pVertexBindingDescriptions = vertex_input_description.m_binding_description.data();
-        m_pipeline_config.m_vertex_input_stage_info.vertexBindingDescriptionCount = vertex_input_description.m_binding_description.size();
+        m_pipeline_config.m_vertex_input_stage_info.pVertexAttributeDescriptions = vertex_input_description.m_attribute_descriptions.data();
+        m_pipeline_config.m_vertex_input_stage_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_description.m_attribute_descriptions.size());
+        m_pipeline_config.m_vertex_input_stage_info.pVertexBindingDescriptions = vertex_input_description.m_binding_descriptions.data();
+        m_pipeline_config.m_vertex_input_stage_info.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_description.m_binding_descriptions.size());
 
-        //What do you want to draw.
+        //What do you want to draw (topology).
         m_pipeline_config.m_input_assembly_state_info = pipeline_objects::create_input_assembly_state_create_info(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
+        //Viewport tell's the pipeline how to transform the gl_Position of the vertex (basically, determine which part of the screen you want to render to. viewport does the transformation from a (-1, 1) range to a (0, width), (0, height) range).
         m_pipeline_config.m_viewport.x = 0.0f;
         m_pipeline_config.m_viewport.y = 0.0f;
         m_pipeline_config.m_viewport.width = static_cast<float>(m_extent.width);
         m_pipeline_config.m_viewport.height = static_cast<float>(m_extent.height);
+
+        //Transformation details for the Z (depth) part of the vertex.
         m_pipeline_config.m_viewport.minDepth = 0.0f;
         m_pipeline_config.m_viewport.maxDepth = 1.0f;
 
+        //Specify the area where rendering is allowed. Anything outside the scissor rectangle will be cut(well, thats why its called scissor).
         m_pipeline_config.m_scissor_rectangle.offset = {0, 0};
         m_pipeline_config.m_scissor_rectangle.extent = m_extent;
 
@@ -410,6 +433,18 @@ namespace halogen
 
         //Create and use the pipeline layout.
         VkPipelineLayoutCreateInfo pipeline_layout_create_info =  pipeline_objects::create_pipeline_layout_create_info();
+
+        //Setup for push constants
+        VkPushConstantRange push_constants;
+        push_constants.offset = 0;
+        push_constants.size = sizeof(MeshPushConstants);
+
+        //Push constant range only accessible in the vertex shader for now
+        push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        pipeline_layout_create_info.pPushConstantRanges = &push_constants;
+        pipeline_layout_create_info.pushConstantRangeCount = 1;
+
         vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
 
         //Bind shader stages for the rgb triangle
@@ -437,9 +472,9 @@ namespace halogen
     {
         m_triangle_mesh.m_vertices.resize(3);
 
-        m_triangle_mesh.m_vertices[0].m_position = glm::vec3(0.0f, -1.0f, 0.0f);
-        m_triangle_mesh.m_vertices[1].m_position = glm::vec3(-1.0f, 1.0f, 0.0f);
-        m_triangle_mesh.m_vertices[2].m_position = glm::vec3(1.0f, 1.0f, 0.0f);
+        m_triangle_mesh.m_vertices[0].m_position = glm::vec3(0.0f, -0.5f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_position = glm::vec3(-0.5f, 0.5f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_position = glm::vec3(0.5f, 0.5f, 0.0f);
 
         m_triangle_mesh.m_vertices[0].m_color = glm::vec3(1.0f, 0.0f, 0.0f);
         m_triangle_mesh.m_vertices[1].m_color = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -463,7 +498,9 @@ namespace halogen
         //Tell vulkan this buffer will be used as a vertex buffer
         vertex_buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-        //This data should we writable by CPU, but should be read from GPU
+        //[NOTE] : Host is the CPU, Device is the GPU. VMA internally uses HOST_VISIBLE_BIT and HOST_COHERENT_BIT to make sure both memory regions are coherent and in sync.
+
+        //This data should we writable by CPU, but should be read from GPU and the allocation is directly is placed directly in GPU-accessible memory.
         VmaAllocationCreateInfo vma_allocation_create_info = {};
         vma_allocation_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
@@ -475,10 +512,16 @@ namespace halogen
             vmaDestroyBuffer(m_vma_allocator, mesh.m_allocated_buffer.m_buffer, mesh.m_allocated_buffer.m_allocation);
         });
 
+        //Memory management
         //Copy your mesh.m_vertices data into a region were GPU can read from (this is some memory on the cpu accessable by the GPU)
         void *data;
+
+        //Create regions of host memory (CPU) mapped to the Device (GPU memory)
         vmaMapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation, &data);
-        memcpy(data, mesh.m_vertices.data(), mesh.m_vertices.size() * sizeof(Vertex));
+
+        //Copies data into host mapped memory, and since both host and device are coherent, should update Device memory too.
+        memcpy(data, mesh.m_vertices.data(), static_cast<uint32_t>(mesh.m_vertices.size()) * sizeof(Vertex));
+
         vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation);
     }
 

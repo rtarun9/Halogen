@@ -12,4 +12,8 @@ your own paths.
 Uses vk_bootstrap for a clean way to initialize core parts of vulkan.
 Link to vk_bootstrap : https://github.com/charles-lunarg/vk-bootstrap.
 
+Uses Vulkan Memory Allocator (By AMD) for memory allocation (CPU to GPU, and for buffers in general)
+Link to VMA : https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 
+# Goals in the future
+Voxel rendering, added UI, code cleanup, custom math

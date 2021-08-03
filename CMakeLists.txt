@@ -46,15 +46,17 @@ set(SRC_FILES
         src/source/graphics/vk_pipeline.cpp
         src/include/core/graphics/vk_mesh.h
         src/source/graphics/vk_mesh.cpp
+        src/include/timer.h src/source/timer.cpp
+
         ${VK_BOOTSTRAP}/vk_bootstrap.cpp
         third_party/vk_bootstrap/vk_bootstrap.h
         third_party/vk_bootstrap/vk_bootstrap_dispatch.h
-        src/include/core/graphics/vk_types.h)
+        )
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
-##[NOTE] : This is fine because I most probably wont be messing around with the third_party libraries
-target_precompile_headers(${PROJECT_NAME} PUBLIC ${VK_MEMORY_ALLOCATOR}/vk_mem_alloc.h)
+##[NOTE] : This is fine because I most probably wont be messing around with the third_party libraries. Vulkan include dirs not being precompiled for now (not even sure if its possible to do so)
+target_precompile_headers(${PROJECT_NAME} PUBLIC ${VK_MEMORY_ALLOCATOR}/vk_mem_alloc.h ${VK_BOOTSTRAP}/vk_bootstrap.h ${VULKAN_INCLUDE_DIRS})
 
 #dl_libs specifically used for vk_bootstrap (since it loads vulkan on its own using dl_open).
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} Vulkan::Vulkan ${GLM_LIBRARIES} ${CMAKE_DL_LIBS})

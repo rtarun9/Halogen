@@ -1,1 +1,1 @@
-rm -rf CMakeFiles cmake_install.cmake CMakeCache.txt 
+rm -rf CMakeFiles cmake_install.cmake CMakeCache.txt *.spv

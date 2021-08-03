@@ -8,9 +8,12 @@
 #include "../platform.h"
 #include "../../common.h"
 #include "vk_pipeline.h"
-#include "vk_types.h"
 #include "vk_mesh.h"
+#include "../../timer.h"
 
+#include <glm/glm.hpp>
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <vulkan/vulkan.h>
 #include <SDL_vulkan.h>
@@ -108,7 +111,7 @@ namespace halogen
         //For clean up
         DeletionQueue m_deletion_queue;
 
-        //For memory allocation
+        //Memory allocator so we can do memory allocation
         VmaAllocator m_vma_allocator;
 
         //Meshes

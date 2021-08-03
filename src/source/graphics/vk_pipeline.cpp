@@ -56,6 +56,9 @@ namespace halogen
         pipeline_create_info.subpass = 0;
         pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 
+        //Use when you cant to change something related to the pipeline without recreation of the entire pipeline, which is good since recreation is pretty expensive.
+        pipeline_create_info.pDynamicState = nullptr;
+
         VkPipeline pipeline;
         vk_check(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline), "Failed to create graphics pipeline");
 
@@ -111,9 +114,11 @@ namespace halogen
         VkPipelineInputAssemblyStateCreateInfo create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         create_info.pNext = nullptr;
+
+        //If using a triangle list, it will consider every set of 3 vertices to be a vertex of a triangle. If using a triangle strip, the second triangle will use last 2 vertices of previous triangle + vertex at index 3.
         create_info.topology = topology;
 
-        //Yeah no clue what this means, so ignoring for now
+        //If the topology is of a strip varient, you can break up the strip using a special index (0XFFF or 0XFFFFFFFFF). Not going to be used now since using strips limits the geometry that can be drawn.
         create_info.primitiveRestartEnable = VK_FALSE;
 
         return create_info;
@@ -126,12 +131,13 @@ namespace halogen
         VkPipelineRasterizationStateCreateInfo create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         create_info.pNext = nullptr;
+
+        //Clamps the pixel's z value if z value of gl_Position is not in range [0, 1]. Not needed for now.
         create_info.depthClampEnable = VK_FALSE;
 
         //Discard all primitives before the rasterization stage.
         //Basically means triangles and other primitives will never be drawn onto the screen.
         //Only used in rare cases (in observing side effects of vertex processing stages).
-
         create_info.rasterizerDiscardEnable = VK_FALSE;
         create_info.polygonMode = polygon_mode;
         create_info.lineWidth = 1.0f;
@@ -152,7 +158,7 @@ namespace halogen
     //Configuration for MSAA
     VkPipelineMultisampleStateCreateInfo pipeline_objects::create_multisample_state_create_info()
     {
-        //Note : no MSAA for now. sample count of 1 is the default.
+        //Note : no MSAA (Multisample state anti aliasing) for now. sample count of 1 is the default.
         VkPipelineMultisampleStateCreateInfo create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         create_info.pNext = nullptr;
@@ -177,7 +183,7 @@ namespace halogen
     }
 
     //Pipeline layout needs to be created seperately from the actual pipeline (should probably move this somewhere else).
-    //Contains information of the different shader inputs, and usually used to configure push constants and such.
+    //Contains information of the different shader inputs, and usually used to configure push constants and such. (Layout of input data that pipeline needs)
     //Since none of those are going to be used, it is empty for now.
     VkPipelineLayoutCreateInfo pipeline_objects::create_pipeline_layout_create_info()
     {
@@ -189,6 +195,8 @@ namespace halogen
         create_info.setLayoutCount = 0;
         create_info.pSetLayouts = nullptr;
         create_info.pushConstantRangeCount = 0;
+
+        //Efficient way to send data to shader programs.
         create_info.pPushConstantRanges = nullptr;
 
         return create_info;
