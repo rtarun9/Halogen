@@ -11,3 +11,4 @@
 #include "core/graphics/vk_debug.h"
 #include "core/graphics/vk_external.h"
 #include "core/graphics/vk_pipeline.h"
+#include "core/math/vector3.h"

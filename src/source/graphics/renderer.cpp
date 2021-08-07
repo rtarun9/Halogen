@@ -6,7 +6,7 @@
 
 namespace halogen
 {
-    Renderer::Renderer(const Input& input) : m_input(input)
+    Renderer::Renderer()
     {
     }
 
@@ -89,10 +89,10 @@ namespace halogen
 
         glm::mat4 mesh_matrix = projection_matrix * view_matrix * model_matrix;
 
-        MeshPushConstants constants;
-        constants.m_render_matrix = mesh_matrix;
+//        MeshPushConstants constants;
+  //      constants.m_render_matrix = mesh_matrix;
 
-        vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+    //    vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
         //Draw 1 object, with 3 vertices.
         vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
 
@@ -435,15 +435,15 @@ namespace halogen
         VkPipelineLayoutCreateInfo pipeline_layout_create_info =  pipeline_objects::create_pipeline_layout_create_info();
 
         //Setup for push constants
-        VkPushConstantRange push_constants;
-        push_constants.offset = 0;
-        push_constants.size = sizeof(MeshPushConstants);
+        //VkPushConstantRange push_constants;
+        //push_constants.offset = 0;
+        //push_constants.size = sizeof(MeshPushConstants);
 
         //Push constant range only accessible in the vertex shader for now
-        push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        //push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        pipeline_layout_create_info.pPushConstantRanges = &push_constants;
-        pipeline_layout_create_info.pushConstantRangeCount = 1;
+        pipeline_layout_create_info.pPushConstantRanges =nullptr;
+        pipeline_layout_create_info.pushConstantRangeCount = 0;
 
         vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
 
@@ -472,18 +472,18 @@ namespace halogen
     {
         m_triangle_mesh.m_vertices.resize(3);
 
-        m_triangle_mesh.m_vertices[0].m_position = glm::vec3(0.0f, -0.5f, 0.0f);
-        m_triangle_mesh.m_vertices[1].m_position = glm::vec3(-0.5f, 0.5f, 0.0f);
-        m_triangle_mesh.m_vertices[2].m_position = glm::vec3(0.5f, 0.5f, 0.0f);
+        m_triangle_mesh.m_vertices[0].m_position = math::Vector3(0.0f, -0.5f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_position = math::Vector3(-0.5f, 0.5f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_position = math::Vector3(0.5f, 0.5f, 0.0f);
 
-        m_triangle_mesh.m_vertices[0].m_color = glm::vec3(1.0f, 0.0f, 0.0f);
-        m_triangle_mesh.m_vertices[1].m_color = glm::vec3(0.0f, 1.0f, 0.0f);
-        m_triangle_mesh.m_vertices[2].m_color = glm::vec3(0.0f, 0.0f, 1.0f);
+        m_triangle_mesh.m_vertices[0].m_color = math::Vector3(1.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_color = math::Vector3(0.0f, 1.0f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_color = math::Vector3(0.0f, 0.0f, 1.0f);
 
         //Dont care about normals for now, so setting everything to zero by default.
-        m_triangle_mesh.m_vertices[0].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
-        m_triangle_mesh.m_vertices[1].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
-        m_triangle_mesh.m_vertices[2].m_normal = glm::vec3(0.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[0].m_normal = math::Vector3(0.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[1].m_normal = math::Vector3(0.0f, 0.0f, 0.0f);
+        m_triangle_mesh.m_vertices[2].m_normal = math::Vector3(0.0f, 0.0f, 0.0f);
 
         upload_mesh(m_triangle_mesh);
     }
@@ -523,6 +523,8 @@ namespace halogen
         memcpy(data, mesh.m_vertices.data(), static_cast<uint32_t>(mesh.m_vertices.size()) * sizeof(Vertex));
 
         vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation);
+
+        debug::log("Vertex stuff done");
     }
 
     void Renderer::clean_up()

@@ -51,7 +51,7 @@ set(SRC_FILES
         ${VK_BOOTSTRAP}/vk_bootstrap.cpp
         third_party/vk_bootstrap/vk_bootstrap.h
         third_party/vk_bootstrap/vk_bootstrap_dispatch.h
-        )
+        src/include/core/math/vector3.h src/source/math/vector3.cpp)
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 

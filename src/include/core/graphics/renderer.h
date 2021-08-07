@@ -1,15 +1,18 @@
 #pragma once
 
-#include "../../log.h"
-#include "vk_debug.h"
-#include "vk_initializers.h"
-#include "../../configuration.h"
 #include "../window.h"
 #include "../platform.h"
+
+#include "../../timer.h"
+#include "../../log.h"
+#include "../../configuration.h"
 #include "../../common.h"
+
+#include "vk_debug.h"
+#include "vk_initializers.h"
 #include "vk_pipeline.h"
 #include "vk_mesh.h"
-#include "../../timer.h"
+
 
 #include <glm/glm.hpp>
 #include <glm/matrix.hpp>
@@ -45,7 +48,7 @@ namespace halogen
     class Renderer
     {
     public:
-        Renderer(const Input& input);
+        Renderer();
         ~Renderer();
 
         void initialize_renderer(const Window& window);
@@ -69,10 +72,6 @@ namespace halogen
         void clean_up();
 
     private:
-        //for non - renderer related stuff.
-
-        //TODO : Dont like how this isnt a const & : PLEASE change later and make input static or something.
-        Input m_input;
 
         int m_frame_number {0};
         VkExtent2D m_extent {1080, 720};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../math/vector3.h"
+
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
@@ -33,9 +35,9 @@ namespace halogen
 
     struct Vertex
     {
-        glm::vec3 m_position;
-        glm::vec3 m_normal;
-        glm::vec3 m_color;
+        math::Vector3 m_position;
+        math::Vector3 m_normal;
+        math::Vector3 m_color;
 
         static VertexInputDescription get_vertex_input_description();
     };
@@ -46,6 +48,7 @@ namespace halogen
         AllocatedBuffer m_allocated_buffer;
     };
 
+    //Need to make custom matrix class before doing  this.
     struct MeshPushConstants
     {
         glm::vec4 m_data;
