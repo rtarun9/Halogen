@@ -2,7 +2,6 @@
 
 #include "../configuration.h"
 #include "../log.h"
-#include "input.h"
 
 #include <SDL.h>
 
@@ -28,9 +27,9 @@ namespace halogen
     private:
         SDL_Window *m_window;
 
-        int m_window_height;
-        int m_window_width;
-        const char *m_window_title;
+        int m_height;
+        int m_width;
+        const char *m_title;
     };
 }
 

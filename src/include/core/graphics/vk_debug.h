@@ -1,17 +1,16 @@
 #pragma once
 
-#include "../../log.h"
-
 #include <vulkan/vulkan.h>
+#include <string>
 
 namespace halogen
 {
-    inline void vk_check(VkResult err, const char *message = "")
+    inline void vk_check(VkResult err, std::string message = "")
     {
         if (err != VK_SUCCESS)
         {
-            //debug::error automatically exits engine, no need to do it here explicitly.
-            debug::error("Encountered vulkan error : ", message);
+        	std::cout << "[ERROR : ] " << message << std::endl;
+        	throw std::runtime_error("Failed stuff");
         }
     }
 }

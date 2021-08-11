@@ -16,4 +16,4 @@ Uses Vulkan Memory Allocator (By AMD) for memory allocation (CPU to GPU, and for
 Link to VMA : https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 
 # Goals in the future
-Voxel rendering, added UI, code cleanup, custom math
+Voxel rendering, added UI, custom ECS and Scene object, custom math library.

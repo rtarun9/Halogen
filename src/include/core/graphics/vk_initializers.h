@@ -1,13 +1,11 @@
 #pragma once
 
-#include "vk_bootstrap.h"
-#include "vk_mem_alloc.h"
+#include <vk_bootstrap.h>
+#include <vk_mem_alloc.h>
 
 #include <vulkan/vulkan.h>
 
-//Namespace for havi
-// ng utility functions to create vulkan objects.
-//TODO : Naming convention is pretty bad, but not to be concerned with it now.
+//utility functions to help dynamically create some vulkan objects.
 namespace halogen::vkinit
 {
     namespace command_objects

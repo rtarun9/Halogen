@@ -15,7 +15,7 @@ namespace halogen
         vk_check(vkCreateShaderModule(device, &shader_module_create_info, nullptr, shader_module), "Failed to create shader module");
     }
 
-    //Acually build the pipeline by connecting all the previous stuff into one place.
+    //Actually build the pipeline by connecting all the previous stuff into one place.
     VkPipeline PipelineConfig::build_pipeline(VkDevice device, VkRenderPass render_pass)
     {
         VkPipelineViewportStateCreateInfo viewport_state_create_info = {};

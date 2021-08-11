@@ -1,22 +1,18 @@
 #pragma once
 
-#include "../window.h"
-#include "../platform.h"
+#include "../timer.h"
+#include "../log.h"
+#include "../configuration.h"
+#include "../common.h"
 
-#include "../../timer.h"
-#include "../../log.h"
-#include "../../configuration.h"
-#include "../../common.h"
+#include "../internal/window.h"
+#include "../internal/platform.h"
 
 #include "vk_debug.h"
 #include "vk_initializers.h"
 #include "vk_pipeline.h"
 #include "vk_mesh.h"
-
-
-#include <glm/glm.hpp>
-#include <glm/matrix.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "vk_types.h"
 
 #include <vulkan/vulkan.h>
 #include <SDL_vulkan.h>
@@ -24,26 +20,10 @@
 #include <iostream>
 #include <string>
 #include <memory>
-
+#include <optional>
 
 namespace halogen
 {
-    struct  QueueFamilyIndices
-    {
-        uint32_t get_graphics_queue_family()
-        {
-            return m_graphics_queue_family.value();
-        }
-
-        uint32_t get_presentation_queue_family()
-        {
-            return m_presentation_queue_family.value();
-        }
-
-        std::optional<uint32_t> m_graphics_queue_family;
-        std::optional<uint32_t> m_presentation_queue_family;
-    };
-
     //Base class for the renderer that ties up all wrapper vulkan / scene classes.
     class Renderer
     {
@@ -90,6 +70,7 @@ namespace halogen
         std::vector<VkImageView> m_swapchain_image_views;
 
         VkQueue m_graphics_queue;
+        VkQueue m_presentation_queue_extension;
         QueueFamilyIndices m_queue_family_indices;
 
         VkCommandPool m_command_pool;

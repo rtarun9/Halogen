@@ -66,6 +66,16 @@ namespace halogen::math
         return *this;
     }
 
+    Vector3 Vector3::operator-()
+    {
+        Vector3 result;
+        result.m_x = -m_x;
+        result.m_y = -m_y;
+        result.m_z = -m_z;
+
+        return result;
+    }
+
     void Vector3::operator+=(const Vector3& other)
     {
         this->m_x += other.m_x;
@@ -93,7 +103,12 @@ namespace halogen::math
         this->m_z /= other.m_z;
     }
 
-    float Vector3::length()
+	Vector3 Vector3::operator*(float scalar)
+	{
+    	return Vector3(m_x * scalar, m_y * scalar, m_z * scalar);
+	}
+
+	float Vector3::length()
     {
         float length = 0;
         length = m_x * m_x + m_y * m_y + m_z * m_z;
@@ -128,6 +143,11 @@ namespace halogen::math
         float result = (a.m_x * b.m_x + a.m_y * b.m_y + a.m_z * b.m_z);
         return result;
     }
+
+	Vector3 cross_product(const Vector3& a, const Vector3& b)
+	{
+    	return Vector3((a.m_y * b.m_z - a.m_z * b.m_y), (a.m_z * b.m_x - a.m_x * b.m_z), (a.m_x * b.m_y - b.m_x * a.m_x));
+	}
 
     std::ostream& operator<<(std::ostream& out, Vector3& vector)
     {

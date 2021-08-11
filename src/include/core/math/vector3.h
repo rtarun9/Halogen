@@ -24,12 +24,16 @@ namespace halogen::math
         Vector3& operator*(const Vector3& other);
         Vector3& operator/(const Vector3& other);
 
+        Vector3 operator-();
+
         Vector3& operator=(const Vector3& other);
 
         void operator+=(const Vector3& other);
         void operator-=(const Vector3& other);
         void operator*=(const Vector3& other);
         void operator/=(const Vector3& other);
+
+        Vector3 operator*(float scalar);
 
         float length();
         float length_squared();
@@ -39,13 +43,18 @@ namespace halogen::math
 
         //Friend functions
         friend float dot_product(const Vector3& a, const Vector3& b);
+        friend Vector3 cross_product(const Vector3& a, const Vector3& b);
+
         friend std::ostream& operator<<(std::ostream& out, Vector3& vector);
 
     public:
-        float m_x;
-        float m_y;
-        float m_z;
+    	struct
+		{
+			float m_x;
+			float m_y;
+			float m_z;
+		};
     };
 
-    using Vecto3f = Vector3;
+    using Vector3f = Vector3;
 }

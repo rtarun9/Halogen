@@ -1,5 +1,6 @@
 #pragma once
 
+//Load functions that arent loaded by the vulkan loader by default.
 namespace halogen::vk_external
 {
     static VkResult create_debug_utils_messenger_EXT

@@ -3,9 +3,6 @@
 #include "../log.h"
 
 #include <SDL.h>
-#include <vector>
-#include <string>
-#include <map>
 
 namespace halogen
 {
@@ -48,6 +45,9 @@ namespace halogen
     public:
         Input();
         ~Input();
+
+        Input(const Input& other) = delete;
+        Input& operator=(const Input& other) = delete;
 
         void initialize_input();
         void process_inputs();

@@ -1,8 +1,8 @@
-#include "../include/core/input.h"
+#include "../../include/core/internal/input.h"
 
 namespace halogen
 {
-    Input::Input() : m_quit_application(false)
+    Input::Input() : m_quit_application(false), m_keyboard_state(0)
     {
         initialize_input();
     }
@@ -14,8 +14,8 @@ namespace halogen
 
     void Input::initialize_input()
     {
-        int sdl_init_status = SDL_WasInit(SDL_INIT_EVERYTHING);
-        if (!(sdl_init_status & SDL_INIT_EVERYTHING))
+        int platform_init_status = SDL_WasInit(SDL_INIT_EVERYTHING);
+        if (!(platform_init_status & SDL_INIT_EVERYTHING))
         {
             debug::error("Cannot use input without initializing SDL first");
         }

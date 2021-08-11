@@ -18,24 +18,25 @@ namespace halogen
     void Renderer::initialize_renderer(const Window& window)
     {
         initialize_vulkan(window);
+		debug::log("Initialized renderer");
 
-        load_mesh();
+		load_mesh();
 
         initialize_pipelines();
     }
 
     void Renderer::render()
     {
-        Timer::instance().m_frame_start = std::chrono::high_resolution_clock::now();
+      	time::Clock::instance().m_frame_start = std::chrono::high_resolution_clock::now();
 
         //Block CPU until previous GPU command has not executed succesfully.
-        vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, Time::One_Second), "Failed waiting for fence. Timeout : 1 second");
+        vk_check(vkWaitForFences(m_device, 1, &m_render_fence, VK_TRUE, time::One_Second), "Failed waiting for fence. Timeout : 1 second");
         vk_check(vkResetFences(m_device, 1, &m_render_fence));
 
-        uint32_t swapchain_image_index = -1;
+        uint32_t swapchain_image_index;
 
         //Wait on the semaphore since you dont want to prepare next frame until GPU execution is done   .
-        vk_check(vkAcquireNextImageKHR(m_device, m_swapchain, Time::One_Second, m_presentation_semaphore, nullptr, &swapchain_image_index));
+        vk_check(vkAcquireNextImageKHR(m_device, m_swapchain, time::One_Second, m_presentation_semaphore, nullptr, &swapchain_image_index));
 
         //Begin rendering commands
 
@@ -52,7 +53,7 @@ namespace halogen
         vk_check(vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info), "Failed to begin recording into command buffer.");
 
         VkClearValue clear_value;
-        clear_value.color = {0.0f, 0.0f, 0.1f};
+        clear_value.color = {0.0f, 0.0f, 0.0f};
 
         VkRenderPassBeginInfo render_pass_begin_info = {};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -77,22 +78,13 @@ namespace halogen
 
         //Bind vertex buffer (of mesh) with 0 offset.
         VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_allocated_buffer.m_buffer, &offset);
+        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_vertex_buffer.m_buffer, &offset);
 
-        //Temporary : for testing out push constants
-        glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, -1.0f);
-        glm::mat4 view_matrix = glm::translate(glm::mat4(1.0f), camera_position);
-        glm::mat4 projection_matrix = glm::perspective(glm::radians(70.0f), (float)m_extent.width / m_extent.height, 0.1f, 1000.0f);
-        projection_matrix[1][1] *= -1;
+        MeshPushConstants mesh_push_constants;
+        mesh_push_constants.m_offset = math::Vector3((float)m_frame_number/1000.0f, 0.0, 0.0);
 
-        glm::mat4 model_matrix = glm::rotate(glm::mat4(1.0f), glm::radians(m_frame_number * 0.3f), glm::vec3(0, 1, 0));
+		vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &mesh_push_constants);
 
-        glm::mat4 mesh_matrix = projection_matrix * view_matrix * model_matrix;
-
-//        MeshPushConstants constants;
-  //      constants.m_render_matrix = mesh_matrix;
-
-    //    vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
         //Draw 1 object, with 3 vertices.
         vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
 
@@ -142,11 +134,15 @@ namespace halogen
 
         present_info.pImageIndices = &swapchain_image_index;
 
-        vk_check(vkQueuePresentKHR(m_graphics_queue, &present_info));
+        vk_check(vkQueuePresentKHR(m_presentation_queue_extension, &present_info));
+
+        time::Clock::instance().m_frame_end = std::chrono::high_resolution_clock::now();
+        time::Clock::instance().m_frame_time = std::chrono::duration_cast<std::chrono::duration<double>>
+		(
+                time::Clock::instance().m_frame_end - time::Clock::instance().m_frame_start
+		);
 
         m_frame_number++;
-        Timer::instance().m_frame_end = std::chrono::high_resolution_clock::now();
-        Timer::instance().m_frame_time = std::chrono::duration_cast<std::chrono::duration<double>>(Timer::instance().m_frame_end - Timer::instance().m_frame_start);
     }
 
     void Renderer::initialize_vulkan(const Window& window)
@@ -164,22 +160,24 @@ namespace halogen
     {
         vkb::InstanceBuilder builder;
         auto instance = builder.set_app_name("Halogen")
-                .request_validation_layers()
+                .request_validation_layers(true)
+                .require_api_version(1, 1, 0)
                 .use_default_debug_messenger()
                 .build();
 
         if (!instance)
         {
-            debug::error("Failed to create vulkan instance");
+            debug::error("Failed to create vulkan instance.", "Error : ", instance.error().message());
         }
 
         vkb::Instance vkb_instance = instance.value();
         m_instance = vkb_instance.instance;
+
         m_debug_messenger = vkb_instance.debug_messenger;
 
         Platform::create_window_surface(window.get_window(), m_instance, m_window_surface);
 
-        //Pass in the window surface so that physical device selecter will choose GPU that can actually render onto the screen.
+        //Pass in the window surface so that physical device selector will choose GPU that can actually render onto the screen.
         vkb::PhysicalDeviceSelector device_selector {vkb_instance};
         vkb::PhysicalDevice physical_device = device_selector
                 .set_minimum_version(1, 1)
@@ -195,6 +193,7 @@ namespace halogen
         m_physical_device = physical_device.physical_device;
 
         m_graphics_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
+        m_presentation_queue_extension = vkb_device.get_queue(vkb::QueueType::present).value();
         m_queue_family_indices.m_graphics_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
 
         //Initializing VMA here as well
@@ -214,7 +213,7 @@ namespace halogen
         //Gpu never idles here (since mail box is used). If power consumption is a issue, use V-Sync (with FIFO present modes, and plus its guarenteed to exist).
         vkb::Swapchain vkb_swapchain = swapchain_builder
                     .use_default_format_selection()
-                    .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
+                    .set_desired_present_mode(VK_PRESENT_MODE_FIFO_RELAXED_KHR)
                     .set_desired_extent(m_extent.width, m_extent.height)
                     .build()
                     .value();
@@ -223,13 +222,11 @@ namespace halogen
 
         //VkImage is the actual image that is used as texture to render to.
         //VkImageView is a wrapper for the image (allows to do things such as swap colors, etc).
-
         m_swapchain_images = vkb_swapchain.get_images().value();
         m_swapchain_image_views = vkb_swapchain.get_image_views().value();
         m_swapchain_image_format = vkb_swapchain.image_format;
 
         //Push into deletion queue
-        //Mosty using [=] capture for now since creating lambda functions that create thier own copies (no referencing going on).
         m_deletion_queue.push_function([=]()
         {
             vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
@@ -240,17 +237,14 @@ namespace halogen
     void Renderer::create_command_objects()
     {
         //CommandPool : allocator for command buffers.
-
-        //flag used here is to specify that command buffers will be reset using vkResetCommandBuffer. (Its state needs to be reset from pending to initial.
-        VkCommandPoolCreateInfo command_pool_create_info = vkinit::command_objects::create_command_pool_create_info(
-                m_queue_family_indices.get_graphics_queue_family(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        //flag used here is to specify that command buffers will be reset using vkResetCommandBuffer. (Its state needs to be reset from pending to initial.)
+        VkCommandPoolCreateInfo command_pool_create_info = vkinit::command_objects::create_command_pool_create_info(m_queue_family_indices.get_graphics_queue_family(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
         vk_check(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pool), "Failed to create comamnd pool");
 
         //primary level command buffer, are sent into the Vkqueue's (execution port of GPU).
         //secondary level command buffers, are sub buffers to the to the primary command buffer.
-        VkCommandBufferAllocateInfo command_buffer_allocate_info = vkinit::command_objects::create_command_buffer_allocate_info(
-                m_command_pool, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        VkCommandBufferAllocateInfo command_buffer_allocate_info = vkinit::command_objects::create_command_buffer_allocate_info(m_command_pool, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         vk_check(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_buffer), "Failed to allocate command buffer");
 
@@ -271,11 +265,10 @@ namespace halogen
         //UNDEFINED -> Renderpass begins -> Subpass 0 begins -> Image layout set to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (optimal for writing into image) ->
         // Subpass 0 renders -> Subpass 0 ends -> Renderpass ends -> Image layout set to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
 
-        //Desciption of image we will be writting into, using the renderpass.
+        //Desciption of image we will be writing into, using the renderpass.
         VkAttachmentDescription color_attachment = {};
         color_attachment.format = m_swapchain_image_format;
 
-        //Set to 1, since there is no MSAA (anti aliasing)
         color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
         //Clear attachment when loaded, and retain attachment when renderpass ends.
@@ -308,6 +301,8 @@ namespace halogen
         render_pass_create_info.pAttachments = &color_attachment;
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass_description;
+		render_pass_create_info.dependencyCount = 0;
+		render_pass_create_info.pDependencies = nullptr;
 
         vk_check(vkCreateRenderPass(m_device, &render_pass_create_info, nullptr, &m_render_pass), "Failed to create render pass.");
 
@@ -357,7 +352,7 @@ namespace halogen
         fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fence_create_info.pNext = nullptr;
 
-        //Create fence in the signalled state. Kinda a edge case for the initial time you want to render something, so you can wait on it before doing GPU commands (for the first time).
+        //Create fence in the signalled state, so that when we wait on the flag for the first iteration of render loop, it immediately passes [edge case].
         fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         vk_check(vkCreateFence(m_device, &fence_create_info, nullptr, &m_render_fence), "Failed to create fence.");
@@ -389,8 +384,6 @@ namespace halogen
     void Renderer::initialize_pipelines()
     {
         //Stuff for shader stages (both fragment and vertex shader).
-
-        //Shader stuff for the rgb triangle
         VkShaderModule triangle_vertex_shader_module;
         VkShaderModule triangle_fragment_shader_module;
 
@@ -434,16 +427,14 @@ namespace halogen
         //Create and use the pipeline layout.
         VkPipelineLayoutCreateInfo pipeline_layout_create_info =  pipeline_objects::create_pipeline_layout_create_info();
 
-        //Setup for push constants
-        //VkPushConstantRange push_constants;
-        //push_constants.offset = 0;
-        //push_constants.size = sizeof(MeshPushConstants);
+        //Push constants setup
+        VkPushConstantRange push_constant_range;
+        push_constant_range.offset = 0;
+        push_constant_range.size = sizeof(MeshPushConstants);
+        push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        //Push constant range only accessible in the vertex shader for now
-        //push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        pipeline_layout_create_info.pPushConstantRanges =nullptr;
-        pipeline_layout_create_info.pushConstantRangeCount = 0;
+        pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+        pipeline_layout_create_info.pushConstantRangeCount = 1;
 
         vk_check(vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_config.m_layout), "Failed to create pipeline layout");
 
@@ -504,12 +495,12 @@ namespace halogen
         VmaAllocationCreateInfo vma_allocation_create_info = {};
         vma_allocation_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-        vk_check(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &mesh.m_allocated_buffer.m_buffer, &mesh.m_allocated_buffer.m_allocation, nullptr), "Failed to create and allocate vertex buffer");
+        vk_check(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &mesh.m_vertex_buffer.m_buffer, &mesh.m_vertex_buffer.m_allocation, nullptr), "Failed to create and allocate vertex buffer");
 
         //Add to deletion queue
         m_deletion_queue.push_function([=]()
         {
-            vmaDestroyBuffer(m_vma_allocator, mesh.m_allocated_buffer.m_buffer, mesh.m_allocated_buffer.m_allocation);
+            vmaDestroyBuffer(m_vma_allocator, mesh.m_vertex_buffer.m_buffer, mesh.m_vertex_buffer.m_allocation);
         });
 
         //Memory management
@@ -517,20 +508,18 @@ namespace halogen
         void *data;
 
         //Create regions of host memory (CPU) mapped to the Device (GPU memory)
-        vmaMapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation, &data);
+        vmaMapMemory(m_vma_allocator, mesh.m_vertex_buffer.m_allocation, &data);
 
         //Copies data into host mapped memory, and since both host and device are coherent, should update Device memory too.
         memcpy(data, mesh.m_vertices.data(), static_cast<uint32_t>(mesh.m_vertices.size()) * sizeof(Vertex));
 
-        vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation);
-
-        debug::log("Vertex stuff done");
+        vmaUnmapMemory(m_vma_allocator, mesh.m_vertex_buffer.m_allocation);
     }
 
     void Renderer::clean_up()
     {
         //Make sure GPU has stopped doing all its operations before deletion
-        vkWaitForFences(m_device, 1, &m_render_fence, true, Time::One_Second);
+        vkWaitForFences(m_device, 1, &m_render_fence, true, time::One_Second);
 
         m_deletion_queue.flush();
 

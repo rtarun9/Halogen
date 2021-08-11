@@ -1,16 +1,40 @@
-#include "../include/timer.h"
+#include "../include/core/timer.h"
 
-halogen::Timer* halogen::Timer::s_instance = nullptr;
-
-namespace halogen
+namespace halogen::time
 {
-    Timer& Timer::instance()
-    {
-        if (s_instance == nullptr)
-        {
-            s_instance = new Timer();
-        }
+	Clock& Clock::instance()
+	{
+		static Clock s_instance;
+		return s_instance;
+	}
 
-        return *s_instance;
-    }
+	Timer::Timer(): m_current_time(0), m_end_time(0), m_start_time(0)
+	{
+	}
+
+	Timer::Timer(uint32_t end_time): m_current_time(0), m_end_time(end_time), m_start_time(0)
+	{
+	}
+
+	void Timer::set_timer(uint32_t end_time)
+	{
+		m_end_time = end_time;
+	}
+
+	void Timer::start_timer()
+	{
+		for (m_current_time = m_start_time; m_current_time < m_end_time; m_current_time++)
+		{
+			//Do nothing for now.
+			;
+		}
+
+		debug::log("Timer ended (end time : ", m_end_time);
+	}
+
+	uint32_t Timer::get_current_time()
+	{
+		debug::log("Current time : ", m_current_time);
+		return m_current_time;
+	}
 }

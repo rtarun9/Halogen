@@ -1,4 +1,4 @@
-#include "../include/core/engine.h"
+#include "../../include/core/internal/engine.h"
 
 namespace halogen
 {

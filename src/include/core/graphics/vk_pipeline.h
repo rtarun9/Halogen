@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../log.h"
-#include "../../common.h"
+#include "../log.h"
+#include "../common.h"
 #include "vk_initializers.h"
 #include "vk_debug.h"
 
@@ -10,7 +10,7 @@
 
 namespace halogen
 {
-    //struct for PipelineConfig (abstracted since the pipeline is a very very big object in vulkan, since it encomposes the entire state of the GPU for the draw).
+    //struct for base pipeline configuration.
     //Bound inside command buffers. Anything that we draw will use the pipeline in this way.
     struct PipelineConfig
     {
@@ -25,11 +25,9 @@ namespace halogen
         VkPipelineMultisampleStateCreateInfo m_multisample_state_create_info;
         VkPipelineLayout m_layout;
 
-        //Not sure if this should be implemented in the vk_pipeline.cpp or vk_initializers.cpp file.
         VkPipeline build_pipeline(VkDevice device, VkRenderPass render_pass);
     };
 
-    //Just some utility functions to help in creation of shader module. Probably move to the vk_initializers file at some point.
     namespace pipeline_utils
     {
         void create_shader_module(VkDevice device, const char *shader_file_path, VkShaderModule *shader_module);

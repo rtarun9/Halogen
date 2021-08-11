@@ -2,9 +2,11 @@
 
 #include "window.h"
 #include "input.h"
-#include "../log.h"
 #include "platform.h"
-#include "graphics/renderer.h"
+
+#include "../graphics/renderer.h"
+
+#include "../log.h"
 
 #include <SDL.h>
 #include <memory>
@@ -16,6 +18,9 @@ namespace halogen
     {
     public:
         Engine();
+
+        Engine(const Engine& other) = delete;
+        Engine& operator=(const Engine& other) = delete;
 
         void start();
         void run();
@@ -33,9 +38,11 @@ namespace halogen
 
     private:
         Platform m_platform;
+
         Window m_window {1080, 720, "Halogen"};
         Input m_input;
         Renderer m_renderer;
+
         bool m_engine_quit;
     };
 }

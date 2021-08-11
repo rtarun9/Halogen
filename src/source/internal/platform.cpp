@@ -1,4 +1,4 @@
-#include "../include/core/platform.h"
+#include "../../include/core/internal/platform.h"
 
 namespace halogen
 {
@@ -22,9 +22,7 @@ namespace halogen
                 debug::error("Could not initialize SDL.");
             }
             debug::log("Successfully initialized SDL.");
-
         }
-
     }
 
     void Platform::get_instance_extensions(std::vector<const char *> &instance_extensions, uint32_t& instance_extension_count)
