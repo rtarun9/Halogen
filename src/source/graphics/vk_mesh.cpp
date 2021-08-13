@@ -45,4 +45,79 @@ namespace halogen
 
         return vertex_input_description;
     }
+
+    //Heavily referenced tinyobjloader's example code (for the deprecated Api).
+    //Todo : Switch to the newer OOP api
+    void Mesh::load_obj_from_file(std::basic_string<char>& obj_file_path)
+	{
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+
+		std::string warning;
+		std::string error;
+
+		bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, obj_file_path.c_str());
+
+		if (!warning.empty())
+		{
+			debug::warning("tinyobj warning : ", warning);
+		}
+
+		if (!error.empty())
+		{
+			debug::warning("tinyobj error : ", error);
+		}
+
+		if (!ret)
+		{
+			debug::error("Failed to load OBJ file from path : ", obj_file_path.c_str());
+		}
+
+		//Loop over all shapes
+		for (size_t s = 0; s < shapes.size(); s++)
+		{
+			//Loop over faces (polygons)
+			size_t index_offset = 0;
+			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
+			{
+				size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
+				//Remove if you want to load more than triangles
+				fv = 3;
+
+				for (size_t v = 0; v < fv; v++)
+				{
+					//Access to vertex
+					tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+
+					//Vertex positions
+					tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+					tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+					tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+
+					//Vertex normals
+					tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
+					tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
+					tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
+
+					//Copy into custom vertex  class
+					Vertex vertex;
+					vertex.m_position.m_x = vx;
+					vertex.m_position.m_y = -vy;
+					vertex.m_position.m_z= vz;
+
+					vertex.m_normal.m_x = nx;
+					vertex.m_normal.m_y = ny;
+					vertex.m_normal.m_z = nz;
+
+					vertex.m_color = vertex.m_normal;
+
+					m_vertices.push_back(vertex);
+				}
+
+				index_offset += fv;
+			}
+		}
+	}
 }
+

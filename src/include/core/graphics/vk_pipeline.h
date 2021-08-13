@@ -23,6 +23,7 @@ namespace halogen
         VkPipelineColorBlendAttachmentState m_color_blend_attachment;
         VkPipelineRasterizationStateCreateInfo m_rasterization_state_create_info;
         VkPipelineMultisampleStateCreateInfo m_multisample_state_create_info;
+        VkPipelineDepthStencilStateCreateInfo m_depth_stencil_state_create_info;
         VkPipelineLayout m_layout;
 
         VkPipeline build_pipeline(VkDevice device, VkRenderPass render_pass);
@@ -46,6 +47,7 @@ namespace halogen
         VkPipelineRasterizationStateCreateInfo create_rasterization_state_create_info(VkPolygonMode polygon_mode);
         VkPipelineMultisampleStateCreateInfo create_multisample_state_create_info();
         VkPipelineColorBlendAttachmentState create_color_blend_attachment_state();
+		VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state_create_info(bool enable_depth_test, bool depth_write, VkCompareOp compare_op);
         VkPipelineLayoutCreateInfo create_pipeline_layout_create_info();
     }
 }

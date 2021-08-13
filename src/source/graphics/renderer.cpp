@@ -55,6 +55,15 @@ namespace halogen
         VkClearValue clear_value;
         clear_value.color = {0.0f, 0.0f, 0.0f};
 
+        VkClearValue depth_clear;
+        depth_clear.depthStencil.depth = 1.0f;
+
+        std::array<VkClearValue, 2> clear_values =
+		{
+			clear_value,
+			depth_clear
+		};
+
         VkRenderPassBeginInfo render_pass_begin_info = {};
         render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         render_pass_begin_info.pNext = nullptr;
@@ -67,26 +76,25 @@ namespace halogen
         //Render into the target framebuffer (target framebuffer index : index of swapchain that has been freshly acquired).
         render_pass_begin_info.framebuffer = m_framebuffers[swapchain_image_index];
 
-        render_pass_begin_info.clearValueCount = 1;
-        render_pass_begin_info.pClearValues = &clear_value;
+        render_pass_begin_info.clearValueCount = clear_values.size();
+        render_pass_begin_info.pClearValues = clear_values.data();
 
         //not calling vk_check for begin render pass since it return void, and its guaranteed to work.
         //Bind the framebuffer, clear the image, and set image layout to that specified when creation of renderpass happened.
         vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
+        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_primary_pipeline);
 
-        //Bind vertex buffer (of mesh) with 0 offset.
         VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_vertex_buffer.m_buffer, &offset);
+        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_monkey_mesh.m_vertex_buffer.m_buffer, &offset);
 
         MeshPushConstants mesh_push_constants;
-        mesh_push_constants.m_offset = math::Vector3((float)m_frame_number/1000.0f, 0.0, 0.0);
+        mesh_push_constants.m_offset = math::Vector3((float)m_frame_number/1000.0f, 0.0, -(float)m_frame_number/1000.0f);
 
 		vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &mesh_push_constants);
 
         //Draw 1 object, with 3 vertices.
-        vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
+        vkCmdDraw(m_command_buffer, m_monkey_mesh.m_vertices.size(), 1, 0, 0);
 
         //Transitions the image layout so that it can be presented, as rendering is done.
         vkCmdEndRenderPass(m_command_buffer);
@@ -231,6 +239,37 @@ namespace halogen
         {
             vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
         });
+
+        //For depth image
+        VkExtent3D depth_image_extent =
+		{
+        	m_extent.width,
+        	m_extent.height,
+        	1
+		};
+
+        //Format : 32 bit floats.
+        m_depth_format = VK_FORMAT_D32_SFLOAT;
+
+        VkImageCreateInfo depth_image_create_info = vkinit::image_objects::create_image_create_info(m_depth_format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, depth_image_extent);
+
+        //For depth image, allocate from GPU's local memory (Vram)
+        VmaAllocationCreateInfo depth_image_allocation_info = {};
+    	depth_image_allocation_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    	depth_image_allocation_info.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    	vmaCreateImage(m_vma_allocator, &depth_image_create_info, &depth_image_allocation_info, &m_depth_image.m_image, &m_depth_image.m_allocation, nullptr);
+
+    	VkImageViewCreateInfo depth_image_view_create_info = vkinit::image_objects::create_image_view_create_info(m_depth_format, m_depth_image.m_image, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    	vk_check(vkCreateImageView(m_device, &depth_image_view_create_info, nullptr, &m_depth_image_view), "Failed to create depth image view.");
+
+    	//Push image and image view to queue
+    	m_deletion_queue.push_function([=]()
+    	{
+			vkDestroyImageView(m_device, m_depth_image_view, nullptr);
+			vmaDestroyImage(m_vma_allocator, m_depth_image.m_image, m_depth_image.m_allocation);
+		});
     }
 
     //Create command buffers and command objects.
@@ -283,22 +322,49 @@ namespace halogen
         color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+        //Depth attachment
+        VkAttachmentDescription depth_attachment = {};
+        depth_attachment.flags = 0;
+        depth_attachment.format = m_depth_format;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+        //Dont care about stencil
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+        //Initial and final layout
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
         VkAttachmentReference color_attachment_reference = {};
 
         //Reference into the render_pass's pAttachment array. layout is set to color optimal since it will be optimal for writing into the color attachment.
         color_attachment_reference.attachment = 0;
         color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+        VkAttachmentReference depth_attachment_reference = {};
+        depth_attachment_reference.attachment = 1;
+        depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        std::array<VkAttachmentDescription , 2> attachments =
+		{
+        	color_attachment,
+        	depth_attachment
+		};
+
         //Only setting up 1 subpass (which is the minimal). Wont be used much in the engine.
         VkSubpassDescription subpass_description = {};
         subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass_description.colorAttachmentCount = 1;
         subpass_description.pColorAttachments = &color_attachment_reference;
+        subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
 
         VkRenderPassCreateInfo render_pass_create_info = {};
         render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_create_info.attachmentCount = 1;
-        render_pass_create_info.pAttachments = &color_attachment;
+        render_pass_create_info.attachmentCount = attachments.size();
+        render_pass_create_info.pAttachments = attachments.data();
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass_description;
 		render_pass_create_info.dependencyCount = 0;
@@ -331,7 +397,16 @@ namespace halogen
 
         for (int i = 0; i < swapchain_image_count; i++)
         {
-            framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
+        	//Connect depth image view and each of the frame buffers.
+        	VkImageView attachments[2] =
+			{
+        		m_swapchain_image_views[i],
+        		m_depth_image_view
+			};
+
+			framebuffer_create_info.attachmentCount = 2;
+			framebuffer_create_info.pAttachments = attachments;
+
             vk_check(vkCreateFramebuffer(m_device, &framebuffer_create_info, nullptr, &m_framebuffers[i]), "Failed to create framebuffers");
 
             //Add framebuffer deletion to deletion queue
@@ -342,6 +417,7 @@ namespace halogen
                 vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);
             });
         }
+
     }
 
     //Fence and Semaphore creation.
@@ -424,6 +500,8 @@ namespace halogen
         //No blending, but write into RGBA
         m_pipeline_config.m_color_blend_attachment = pipeline_objects::create_color_blend_attachment_state();
 
+        //For Z buffer
+        m_pipeline_config.m_depth_stencil_state_create_info = pipeline_objects::create_depth_stencil_state_create_info(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
         //Create and use the pipeline layout.
         VkPipelineLayoutCreateInfo pipeline_layout_create_info =  pipeline_objects::create_pipeline_layout_create_info();
 
@@ -443,7 +521,7 @@ namespace halogen
         m_pipeline_config.m_shader_stages.push_back(pipeline_objects::create_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, triangle_fragment_shader_module));
 
         //Build pipeline for rgb triangle
-        m_triangle_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
+        m_primary_pipeline = m_pipeline_config.build_pipeline(m_device, m_render_pass);
 
         //Delete shader modules (no need for this to be done in the deletion queue, just plain old deletion).
         vkDestroyShaderModule(m_device, triangle_vertex_shader_module, nullptr);
@@ -452,7 +530,7 @@ namespace halogen
         //Deletion queue for pipeline related objects
         m_deletion_queue.push_function([=]()
         {
-            vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);
+            vkDestroyPipeline(m_device, m_primary_pipeline, nullptr);
 
             vkDestroyPipelineLayout(m_device, m_pipeline_config.m_layout, nullptr);
         });
@@ -476,7 +554,11 @@ namespace halogen
         m_triangle_mesh.m_vertices[1].m_normal = math::Vector3(0.0f, 0.0f, 0.0f);
         m_triangle_mesh.m_vertices[2].m_normal = math::Vector3(0.0f, 0.0f, 0.0f);
 
+        auto file_path = std::string("../assets/monkey_smooth.obj");
+        m_monkey_mesh.load_obj_from_file(file_path);
+
         upload_mesh(m_triangle_mesh);
+		upload_mesh(m_monkey_mesh);
     }
 
     void Renderer::upload_mesh(Mesh &mesh)

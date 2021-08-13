@@ -18,6 +18,7 @@
 #include <SDL_vulkan.h>
 #include <vector>
 #include <iostream>
+#include <array>
 #include <string>
 #include <memory>
 #include <optional>
@@ -69,6 +70,12 @@ namespace halogen
         std::vector<VkImage> m_swapchain_images;
         std::vector<VkImageView> m_swapchain_image_views;
 
+        //For depth image
+        VkImageView m_depth_image_view;
+		VkFormat m_depth_format;
+
+		AllocatedImage m_depth_image;
+
         VkQueue m_graphics_queue;
         VkQueue m_presentation_queue_extension;
         QueueFamilyIndices m_queue_family_indices;
@@ -82,11 +89,12 @@ namespace halogen
         //Sync objects.
         VkFence m_render_fence;
         VkSemaphore m_presentation_semaphore;
+
         VkSemaphore m_render_semaphore;
 
         //Pipeline related
         PipelineConfig m_pipeline_config;
-        VkPipeline m_triangle_pipeline;
+        VkPipeline m_primary_pipeline;
 
         //For clean up
         DeletionQueue m_deletion_queue;
@@ -96,6 +104,7 @@ namespace halogen
 
         //Meshes
         Mesh m_triangle_mesh;
+        Mesh m_monkey_mesh;
 
     };
 }

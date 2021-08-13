@@ -16,6 +16,9 @@ include_directories(${VK_MEMORY_ALLOCATOR})
 set (VK_BOOTSTRAP third_party/vk_bootstrap)
 include_directories(${VK_BOOTSTRAP})
 
+set (TINY_OBJ_LOADER third_party/tiny_obj_loader)
+include_directories(${TINY_OBJ_LOADER})
+
 set(PROJECT_HEADER_FILES
         src/include/core/log.h
         src/include/core/common.h
@@ -61,8 +64,10 @@ set(PROJECT_SRC_FILES
 set (THIRD_PARTY_FILES
         third_party/vk_bootstrap/vk_bootstrap.h
         third_party/vk_bootstrap/vk_bootstrap_dispatch.h
+        third_party/tiny_obj_loader/tiny_obj_loader.h
 
         third_party/vk_bootstrap/vk_bootstrap.cpp
+        third_party/tiny_obj_loader/tiny_obj_loader.cpp
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_HEADER_FILES} ${PROJECT_SRC_FILES} ${THIRD_PARTY_FILES})

@@ -51,6 +51,7 @@ namespace halogen
         pipeline_create_info.pRasterizationState = &m_rasterization_state_create_info;
         pipeline_create_info.pMultisampleState = &m_multisample_state_create_info;
         pipeline_create_info.pColorBlendState = &color_blending;
+        pipeline_create_info.pDepthStencilState = &m_depth_stencil_state_create_info;
         pipeline_create_info.layout = m_layout;
         pipeline_create_info.renderPass = render_pass;
         pipeline_create_info.subpass = 0;
@@ -181,6 +182,21 @@ namespace halogen
         color_blend_attachment.blendEnable = VK_FALSE;
         return color_blend_attachment;
     }
+
+    VkPipelineDepthStencilStateCreateInfo pipeline_objects::create_depth_stencil_state_create_info(bool enable_depth_test, bool depth_write, VkCompareOp compare_op)
+    {
+		VkPipelineDepthStencilStateCreateInfo create_info = {};
+		create_info.sType =  VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		create_info.pNext = nullptr;
+
+		create_info.depthTestEnable = enable_depth_test ? VK_TRUE : VK_FALSE;
+		create_info.depthWriteEnable = depth_write ? VK_TRUE : VK_FALSE;
+		create_info.depthCompareOp = compare_op;
+		create_info.depthBoundsTestEnable = VK_FALSE;
+		create_info.stencilTestEnable = VK_FALSE;
+
+		return create_info;
+	}
 
     //Pipeline layout needs to be created seperately from the actual pipeline (should probably move this somewhere else).
     //Contains information of the different shader inputs, and usually used to configure push constants and such. (Layout of input data that pipeline needs)

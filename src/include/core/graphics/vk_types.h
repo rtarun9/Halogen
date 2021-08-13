@@ -47,6 +47,13 @@ namespace halogen
 		VmaAllocation m_allocation;
 	};
 
+	//Basic struct for implementing depth image
+	struct AllocatedImage
+	{
+		VkImage m_image;
+		VmaAllocation m_allocation;
+	};
+
 	//Destruction queue : easy automated way of calling vkDestroyXXX commands in the right order.
     struct DeletionQueue
     {

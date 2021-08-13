@@ -2,11 +2,15 @@
 
 #include "../math/vector3.h"
 #include "../math/vector4.h"
+
+#include "../log.h"
+
 #include "vk_types.h"
 
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+#include <tiny_obj_loader.h>
 
 namespace halogen
 {
@@ -31,6 +35,8 @@ namespace halogen
     {
         std::vector<Vertex> m_vertices;
         AllocatedBuffer m_vertex_buffer;
+
+        void load_obj_from_file(std::basic_string<char>& obj_file_path);
     };
 
 	//Load some simple data by passing into command buffer.
