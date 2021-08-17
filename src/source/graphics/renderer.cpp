@@ -89,8 +89,12 @@ namespace halogen
         vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_monkey_mesh.m_vertex_buffer.m_buffer, &offset);
 
         MeshPushConstants mesh_push_constants;
-        mesh_push_constants.m_offset = math::Vector3((float)m_frame_number/1000.0f, 0.0, -(float)m_frame_number/1000.0f);
+        math::Matrix4x4 transform_mat(1.0f);
 
+		transform_mat = math::scale_matrix(transform_mat, math::Vector4f(0.25, 0.25, 0.25, 1.0f));
+        transform_mat = transform_mat * math::rotate_matrix_x(transform_mat, math::degrees_to_radians(m_frame_number));
+
+        mesh_push_constants.m_mvp_matrix = transform_mat;
 		vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &mesh_push_constants);
 
         //Draw 1 object, with 3 vertices.

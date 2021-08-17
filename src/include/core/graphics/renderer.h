@@ -8,6 +8,8 @@
 #include "../internal/window.h"
 #include "../internal/platform.h"
 
+#include "../math/math.h"
+
 #include "vk_debug.h"
 #include "vk_initializers.h"
 #include "vk_pipeline.h"

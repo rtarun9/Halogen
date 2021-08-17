@@ -17,4 +17,10 @@
 #include "core/graphics/vk_mesh.h"
 #include "core/graphics/vk_initializers.h"
 #include "core/graphics/vk_types.h"
+
+#include "core/math/vector2.h"
 #include "core/math/vector3.h"
+#include "core/math/vector4.h"
+#include "core/math/matrix3x3.h"
+#include "core/math/matrix4x4.h"
+#include "core/math/matrix_transform.h"

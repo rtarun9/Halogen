@@ -42,6 +42,7 @@ namespace halogen::math
 		void normalize();
 
 		//Friend functions
+		friend float difference(const Vector4& a, const Vector4& b);
 		friend float dot_product(const Vector4& a, const Vector4& b);
 
 		friend std::ostream& operator<<(std::ostream& out, Vector4& vector);

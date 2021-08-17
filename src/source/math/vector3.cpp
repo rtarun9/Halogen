@@ -137,6 +137,13 @@ namespace halogen::math
         *this = *this / len;
     }
 
+    float distance(const Vector3& a, const Vector3& b)
+	{
+    	Vector3 difference = a;
+    	difference -= b;
+
+    	return difference.length();
+	}
 
     float dot_product(const Vector3& a, const Vector3& b)
     {

@@ -26,6 +26,8 @@ set(PROJECT_HEADER_FILES
         src/include/core/configuration.h
         src/include/core/timer.h
 
+        src/include/core/camera.h
+
         src/include/core/internal/window.h
         src/include/core/internal/input.h
         src/include/core/internal/engine.h
@@ -39,8 +41,13 @@ set(PROJECT_HEADER_FILES
         src/include/core/graphics/vk_initializers.h
         src/include/core/graphics/vk_types.h
 
+        src/include/core/math/math.h
+        src/include/core/math/vector2.h
         src/include/core/math/vector3.h
         src/include/core/math/vector4.h
+        src/include/core/math/matrix3x3.h
+        src/include/core/math/matrix4x4.h
+        src/include/core/math/matrix_transform.h
 )
 
 
@@ -52,13 +59,18 @@ set(PROJECT_SRC_FILES
         src/source/internal/platform.cpp
         src/source/timer.cpp
 
+        src/source/camera.cpp
+
         src/source/graphics/renderer.cpp
         src/source/graphics/vk_initializers.cpp
         src/source/graphics/vk_pipeline.cpp
         src/source/graphics/vk_mesh.cpp
 
+        src/source/math/vector2.cpp
         src/source/math/vector3.cpp
         src/source/math/vector4.cpp
+        src/source/math/matrix3x3.cpp
+        src/source/math/matrix4x4.cpp
 )
 
 set (THIRD_PARTY_FILES

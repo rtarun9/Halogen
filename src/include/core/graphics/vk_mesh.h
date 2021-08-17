@@ -6,6 +6,7 @@
 #include "../log.h"
 
 #include "vk_types.h"
+#include "../math/matrix4x4.h"
 
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -42,7 +43,7 @@ namespace halogen
 	//Load some simple data by passing into command buffer.
     struct MeshPushConstants
     {
-    	alignas(16) math::Vector3 m_offset;
+    	alignas(16) math::Matrix4x4 m_mvp_matrix;
     };
 }
 

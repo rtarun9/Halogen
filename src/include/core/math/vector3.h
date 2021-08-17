@@ -42,6 +42,8 @@ namespace halogen::math
         void normalize();
 
         //Friend functions
+        friend float distance(const Vector3& a, const Vector3& b);
+
         friend float dot_product(const Vector3& a, const Vector3& b);
         friend Vector3 cross_product(const Vector3& a, const Vector3& b);
 
