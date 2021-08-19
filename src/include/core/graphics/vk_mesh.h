@@ -3,6 +3,7 @@
 #include "../math/vector3.h"
 #include "../math/vector4.h"
 
+
 #include "../log.h"
 
 #include "vk_types.h"
@@ -12,6 +13,7 @@
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <tiny_obj_loader.h>
+#include <glm/glm.hpp>
 
 namespace halogen
 {
@@ -37,13 +39,13 @@ namespace halogen
         std::vector<Vertex> m_vertices;
         AllocatedBuffer m_vertex_buffer;
 
-        void load_obj_from_file(std::basic_string<char>& obj_file_path);
+        void load_obj_from_file(std::basic_string<char> obj_file_path);
     };
 
 	//Load some simple data by passing into command buffer.
     struct MeshPushConstants
     {
-    	alignas(16) math::Matrix4x4 m_mvp_matrix;
+    	alignas(16) glm::mat4 m_transform_matrix;
     };
 }
 

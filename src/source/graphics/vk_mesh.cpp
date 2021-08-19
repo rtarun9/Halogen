@@ -48,7 +48,7 @@ namespace halogen
 
     //Heavily referenced tinyobjloader's example code (for the deprecated Api).
     //Todo : Switch to the newer OOP api
-    void Mesh::load_obj_from_file(std::basic_string<char>& obj_file_path)
+    void Mesh::load_obj_from_file(std::basic_string<char> obj_file_path)
 	{
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;

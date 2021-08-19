@@ -10,6 +10,9 @@ include_directories(${SDL2_INCLUDE_DIRS})
 find_package(Vulkan REQUIRED)
 include_directories(${VULKAN_INCLUDE_DIRS})
 
+find_package(glm REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
+
 set (VK_MEMORY_ALLOCATOR third_party/vma)
 include_directories(${VK_MEMORY_ALLOCATOR})
 
@@ -26,7 +29,7 @@ set(PROJECT_HEADER_FILES
         src/include/core/configuration.h
         src/include/core/timer.h
 
-        src/include/core/camera.h
+        src/include/core/game/camera.h
 
         src/include/core/internal/window.h
         src/include/core/internal/input.h
@@ -48,6 +51,9 @@ set(PROJECT_HEADER_FILES
         src/include/core/math/matrix3x3.h
         src/include/core/math/matrix4x4.h
         src/include/core/math/matrix_transform.h
+
+        src/include/core/game/game_object.h
+        src/include/core/game/scene.h
 )
 
 
@@ -59,7 +65,7 @@ set(PROJECT_SRC_FILES
         src/source/internal/platform.cpp
         src/source/timer.cpp
 
-        src/source/camera.cpp
+        src/source/game/camera.cpp
 
         src/source/graphics/renderer.cpp
         src/source/graphics/vk_initializers.cpp
@@ -71,6 +77,9 @@ set(PROJECT_SRC_FILES
         src/source/math/vector4.cpp
         src/source/math/matrix3x3.cpp
         src/source/math/matrix4x4.cpp
+
+        src/source/game/game_object.cpp
+        src/source/game/scene.cpp
 )
 
 set (THIRD_PARTY_FILES
@@ -87,4 +96,14 @@ add_executable(${PROJECT_NAME} ${PROJECT_HEADER_FILES} ${PROJECT_SRC_FILES} ${TH
 target_precompile_headers(${PROJECT_NAME} PUBLIC ${VK_MEMORY_ALLOCATOR}/vk_mem_alloc.h ${VK_BOOTSTRAP}/vk_bootstrap.h ${VK_BOOTSTRAP}/vk_bootstrap_dispatch.h)
 
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan ${SDL2_LIBRARIES} ${GLM_LIBRARIES} ${CMAKE_DL_LIBS})
+
+
+
+
+
+
+
+
+
+
 

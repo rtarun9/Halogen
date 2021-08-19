@@ -6,9 +6,9 @@
 
 namespace halogen
 {
-    Renderer::Renderer()
-    {
-    }
+	Renderer::Renderer(Input &input): m_input(input)
+	{
+	}
 
     Renderer::~Renderer()
     {
@@ -23,10 +23,14 @@ namespace halogen
 		load_mesh();
 
         initialize_pipelines();
+
+        initialize_scene();
     }
 
     void Renderer::render()
     {
+	//	vkDeviceWaitIdle(m_device);
+
       	time::Clock::instance().m_frame_start = std::chrono::high_resolution_clock::now();
 
         //Block CPU until previous GPU command has not executed succesfully.
@@ -83,22 +87,9 @@ namespace halogen
         //Bind the framebuffer, clear the image, and set image layout to that specified when creation of renderpass happened.
         vkCmdBeginRenderPass(m_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_primary_pipeline);
+        m_main_scene.m_camera.update_camera(m_input);
 
-        VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_monkey_mesh.m_vertex_buffer.m_buffer, &offset);
-
-        MeshPushConstants mesh_push_constants;
-        math::Matrix4x4 transform_mat(1.0f);
-
-		transform_mat = math::scale_matrix(transform_mat, math::Vector4f(0.25, 0.25, 0.25, 1.0f));
-        transform_mat = transform_mat * math::rotate_matrix_x(transform_mat, math::degrees_to_radians(m_frame_number));
-
-        mesh_push_constants.m_mvp_matrix = transform_mat;
-		vkCmdPushConstants(m_command_buffer, m_pipeline_config.m_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &mesh_push_constants);
-
-        //Draw 1 object, with 3 vertices.
-        vkCmdDraw(m_command_buffer, m_monkey_mesh.m_vertices.size(), 1, 0, 0);
+        m_main_scene.render_objects(m_command_buffer, m_main_scene.m_game_objects);
 
         //Transitions the image layout so that it can be presented, as rendering is done.
         vkCmdEndRenderPass(m_command_buffer);
@@ -538,6 +529,8 @@ namespace halogen
 
             vkDestroyPipelineLayout(m_device, m_pipeline_config.m_layout, nullptr);
         });
+
+        m_main_scene.create_material(m_primary_pipeline, m_pipeline_config.m_layout, "default");
     }
 
     //Mesh related functions
@@ -563,6 +556,9 @@ namespace halogen
 
         upload_mesh(m_triangle_mesh);
 		upload_mesh(m_monkey_mesh);
+
+		m_main_scene.m_meshes["monkey"] = m_monkey_mesh;
+		m_main_scene.m_meshes["triangle"] = m_triangle_mesh;
     }
 
     void Renderer::upload_mesh(Mesh &mesh)
@@ -601,6 +597,34 @@ namespace halogen
 
         vmaUnmapMemory(m_vma_allocator, mesh.m_vertex_buffer.m_allocation);
     }
+
+    void Renderer::initialize_scene()
+	{
+		GameObject monkey;
+		monkey.m_mesh = m_main_scene.get_mesh("monkey");
+		monkey.m_material = m_main_scene.get_material("default");
+		monkey.m_transformation_mat = glm::mat4{ 1.0f };
+
+		m_main_scene.m_game_objects.push_back(monkey);
+
+		for (int x = -20; x <= 20; x++)
+		{
+			for (int y = -20; y <= 20; y++)
+			{
+
+				GameObject tri;
+				tri.m_mesh = m_main_scene.get_mesh("triangle");
+				tri.m_material = m_main_scene.get_material("default");
+				glm::mat4 translation = glm::translate(glm::mat4{ 1.0 }, glm::vec3(x, 0, y));
+				glm::mat4 scale = glm::scale(glm::mat4{ 1.0 }, glm::vec3(0.2, 0.2, 0.2));
+				tri.m_transformation_mat = translation * scale;
+
+				m_main_scene.m_game_objects.push_back(tri);
+			}
+		}
+
+		debug::log("Initialized main scene.");
+	}
 
     void Renderer::clean_up()
     {

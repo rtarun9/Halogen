@@ -47,7 +47,7 @@ namespace halogen
         ~Input();
 
         Input(const Input& other) = delete;
-        Input& operator=(const Input& other) = delete;
+        //Input& operator=(const Input& other) = delete;
 
         void initialize_input();
         void process_inputs();

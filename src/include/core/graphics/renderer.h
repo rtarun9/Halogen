@@ -7,8 +7,11 @@
 
 #include "../internal/window.h"
 #include "../internal/platform.h"
+#include "../internal/input.h"
 
 #include "../math/math.h"
+
+#include "../game/scene.h"
 
 #include "vk_debug.h"
 #include "vk_initializers.h"
@@ -24,6 +27,8 @@
 #include <string>
 #include <memory>
 #include <optional>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace halogen
 {
@@ -31,7 +36,7 @@ namespace halogen
     class Renderer
     {
     public:
-        Renderer();
+        Renderer(Input& input);
         ~Renderer();
 
         void initialize_renderer(const Window& window);
@@ -51,10 +56,13 @@ namespace halogen
 
         void load_mesh();
         void upload_mesh(Mesh& mesh);
+        void initialize_scene();
 
         void clean_up();
 
     private:
+
+    	Input& m_input;
 
         int m_frame_number {0};
         VkExtent2D m_extent {1080, 720};
@@ -108,5 +116,6 @@ namespace halogen
         Mesh m_triangle_mesh;
         Mesh m_monkey_mesh;
 
+        Scene m_main_scene;
     };
 }

@@ -41,7 +41,7 @@ namespace halogen
 
         Window m_window {1080, 720, "Halogen"};
         Input m_input;
-        Renderer m_renderer;
+        Renderer m_renderer{m_input};
 
         bool m_engine_quit;
     };
