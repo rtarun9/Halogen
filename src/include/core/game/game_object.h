@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 
+using id_t = uint32_t;
+
 namespace halogen
 {
 	struct Material
@@ -19,6 +21,9 @@ namespace halogen
 		GameObject();
 		~GameObject();
 
+		uint32_t get_id();
+
+	private:
 		uint32_t create_game_object();
 
 	public:

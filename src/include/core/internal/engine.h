@@ -4,9 +4,10 @@
 #include "input.h"
 #include "platform.h"
 
-#include "../graphics/renderer.h"
-
+#include "../configuration.h"
 #include "../log.h"
+
+#include "../graphics/renderer.h"
 
 #include <SDL.h>
 #include <memory>
@@ -17,7 +18,7 @@ namespace halogen
     class Engine
     {
     public:
-        Engine();
+        Engine(Config config);
 
         Engine(const Engine& other) = delete;
         Engine& operator=(const Engine& other) = delete;

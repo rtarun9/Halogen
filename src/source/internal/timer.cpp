@@ -1,4 +1,4 @@
-#include "../include/core/timer.h"
+#include "../../include/core/internal/timer.h"
 
 namespace halogen::time
 {

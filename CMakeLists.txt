@@ -4,6 +4,8 @@ project(Halogen)
 
 set(CMAKE_CXX_STANDARD 17)
 
+execute_process(COMMAND bash compile_shader.sh WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
@@ -27,10 +29,8 @@ set(PROJECT_HEADER_FILES
         src/include/core/common.h
         src/include/halogen.h
         src/include/core/configuration.h
-        src/include/core/timer.h
 
-        src/include/core/game/camera.h
-
+        src/include/core/internal/timer.h
         src/include/core/internal/window.h
         src/include/core/internal/input.h
         src/include/core/internal/engine.h
@@ -54,18 +54,17 @@ set(PROJECT_HEADER_FILES
 
         src/include/core/game/game_object.h
         src/include/core/game/scene.h
+        src/include/core/game/camera.h
 )
-
 
 set(PROJECT_SRC_FILES
         src/source/main.cpp
+
         src/source/internal/window.cpp
         src/source/internal/input.cpp
         src/source/internal/engine.cpp
         src/source/internal/platform.cpp
-        src/source/timer.cpp
-
-        src/source/game/camera.cpp
+        src/source/internal/timer.cpp
 
         src/source/graphics/renderer.cpp
         src/source/graphics/vk_initializers.cpp
@@ -80,6 +79,7 @@ set(PROJECT_SRC_FILES
 
         src/source/game/game_object.cpp
         src/source/game/scene.cpp
+        src/source/game/camera.cpp
 )
 
 set (THIRD_PARTY_FILES
@@ -93,17 +93,6 @@ set (THIRD_PARTY_FILES
 
 add_executable(${PROJECT_NAME} ${PROJECT_HEADER_FILES} ${PROJECT_SRC_FILES} ${THIRD_PARTY_FILES})
 
-target_precompile_headers(${PROJECT_NAME} PUBLIC ${VK_MEMORY_ALLOCATOR}/vk_mem_alloc.h ${VK_BOOTSTRAP}/vk_bootstrap.h ${VK_BOOTSTRAP}/vk_bootstrap_dispatch.h)
+target_precompile_headers(${PROJECT_NAME} PUBLIC <vk_mem_alloc.h> <vk_bootstrap.h> <vk_bootstrap_dispatch.h> <tiny_obj_loader.h>)
 
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan ${SDL2_LIBRARIES} ${GLM_LIBRARIES} ${CMAKE_DL_LIBS})
-
-
-
-
-
-
-
-
-
-
-

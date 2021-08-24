@@ -1,5 +1,8 @@
 #pragma once
 
+//Note : Custom math library currently not in use. Used as reference alone
+//Note : Projection calculation broken
+
 #include "vector2.h"
 #include "vector3.h"
 #include "vector4.h"
@@ -10,6 +13,14 @@
 #include "matrix_transform.h"
 
 #include <cmath>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+using mat4 = glm::mat4;
+using mat3 = glm::mat3;
+using vec3 = glm::vec3;
+using vec4 = glm::vec4;
 
 #define PI 3.141592f
 

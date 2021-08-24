@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include <deque>
 #include <functional>
 
@@ -79,4 +81,43 @@ namespace halogen
             deletors.clear();
         }
     };
+
+	//Basic wrappers for Vulkan objects
+	namespace wrapper
+	{
+		struct CameraData
+		{
+			glm::mat4 m_view_mat;
+			glm::mat4 m_projection_mat;
+		};
+
+		struct FrameData
+		{
+			VkCommandPool m_command_pool;
+			VkCommandBuffer m_command_buffer;
+
+			VkSemaphore m_present_semaphore;
+			VkSemaphore m_render_semaphore;
+			VkFence m_render_fence;
+
+			//Buffer for the camera
+			AllocatedBuffer m_camera_buffer;
+			VkDescriptorSet m_global_descriptor;
+		};
+
+		struct Swapchain
+		{
+			VkSwapchainKHR m_swapchain{};
+			VkFormat m_swapchain_image_format{};
+			std::vector<VkImage> m_swapchain_images{};
+			std::vector<VkImageView> m_swapchain_image_views{};
+		};
+
+		struct DepthImage
+		{
+			VkImageView m_depth_image_view{};
+			VkFormat m_depth_format{};
+			AllocatedImage m_depth_image{};
+		};
+	}
 }

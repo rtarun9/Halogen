@@ -3,7 +3,7 @@
 #include "core/configuration.h"
 #include "core/log.h"
 #include "core/common.h"
-#include "core/timer.h"
+#include "core/internal/timer.h"
 
 #include "core/internal/input.h"
 #include "core/internal/window.h"
@@ -24,3 +24,7 @@
 #include "core/math/matrix3x3.h"
 #include "core/math/matrix4x4.h"
 #include "core/math/matrix_transform.h"
+
+#include "core/game/camera.h"
+#include "core/game/game_object.h"
+#include "core/game/scene.h"

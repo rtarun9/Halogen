@@ -2,7 +2,7 @@
 
 namespace halogen
 {
-    Engine::Engine()
+    Engine::Engine(Config config)
     {
         m_engine_quit = false;
     }

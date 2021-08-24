@@ -56,13 +56,14 @@ namespace halogen
 		}
 	}
 
-	void Scene::render_objects(VkCommandBuffer command_buffer, std::vector<GameObject> &game_objects)
+	void Scene::render_objects(VkCommandBuffer command_buffer, wrapper::FrameData& frame_data, VmaAllocator allocator)
 	{
 		glm::vec3 camera_position = m_camera.m_camera_position;
 
 		glm::mat4 view_mat = glm::mat4(1.0f);
 		view_mat = glm::translate(glm::mat4(1.0f), camera_position);
 
+		//[NOTE] : Need to remove hardcoded aspect ratio soon.
 		glm::mat4 projection = glm::perspective(glm::radians(75.0f), 1080.0f / 720.0f, 0.1f, 100.0f);
 
 		Mesh *last_mesh = nullptr;
@@ -76,6 +77,7 @@ namespace halogen
 			{
 				vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_material->m_pipeline);
 				last_material = object.m_material;
+				vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_material->m_pipeline_layout, 0, 1, &frame_data.m_global_descriptor, 0, nullptr);
 			}
 
 			glm::mat4 model_mat = object.m_transformation_mat;
@@ -83,9 +85,23 @@ namespace halogen
 			glm::mat4 mvp_matrix = projection * view_mat * model_mat;
 
 			MeshPushConstants push_constants = {};
-			push_constants.m_transform_matrix = mvp_matrix;
+			//Projection and model matrices are handeled by descriptor sets now.
+			push_constants.m_transform_matrix = model_mat;
 
 			vkCmdPushConstants(command_buffer, object.m_material->m_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &push_constants);
+
+			//Fill camera data
+			wrapper::CameraData camera_data = {};
+			camera_data.m_projection_mat = projection;
+			camera_data.m_view_mat = view_mat;
+
+			//Copy to buffer
+			void *data;
+
+			//Note : something is broken here : very poor FPS.
+			vmaMapMemory(allocator, frame_data.m_camera_buffer.m_allocation, &data);
+			memcpy(data, &camera_data, sizeof(wrapper::CameraData));
+			vmaUnmapMemory(allocator, frame_data.m_camera_buffer.m_allocation);
 
 			if (object.m_mesh != last_mesh)
 			{

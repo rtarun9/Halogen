@@ -102,13 +102,13 @@ namespace halogen
 
 					//Copy into custom vertex  class
 					Vertex vertex;
-					vertex.m_position.m_x = vx;
-					vertex.m_position.m_y = -vy;
-					vertex.m_position.m_z= vz;
+					vertex.m_position.x = vx;
+					vertex.m_position.y = -vy;
+					vertex.m_position.z= vz;
 
-					vertex.m_normal.m_x = nx;
-					vertex.m_normal.m_y = ny;
-					vertex.m_normal.m_z = nz;
+					vertex.m_normal.x = nx;
+					vertex.m_normal.y = ny;
+					vertex.m_normal.z = nz;
 
 					vertex.m_color = vertex.m_normal;
 

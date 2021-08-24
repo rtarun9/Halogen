@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "log.h"
+#include "../log.h"
 
 namespace halogen::time
 {

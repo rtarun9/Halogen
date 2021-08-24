@@ -18,6 +18,9 @@ namespace halogen
                 S = SDL_SCANCODE_S,
                 D = SDL_SCANCODE_D,
 
+                Q = SDL_SCANCODE_Q,
+                E = SDL_SCANCODE_E,
+
                 Up = SDL_SCANCODE_UP,
                 Down = SDL_SCANCODE_DOWN,
                 Left = SDL_SCANCODE_LEFT,
@@ -47,7 +50,6 @@ namespace halogen
         ~Input();
 
         Input(const Input& other) = delete;
-        //Input& operator=(const Input& other) = delete;
 
         void initialize_input();
         void process_inputs();

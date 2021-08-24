@@ -27,9 +27,9 @@ namespace halogen
 
     struct Vertex
     {
-        math::Vector3 m_position;
-        math::Vector3 m_normal;
-        math::Vector3 m_color;
+        glm::vec3 m_position;
+        glm::vec3 m_normal;
+        glm::vec3 m_color;
 
         static VertexInputDescription get_vertex_input_description();
     };

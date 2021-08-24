@@ -5,6 +5,7 @@ namespace halogen
 	GameObject::GameObject(): m_mesh(nullptr), m_id(-1)
 	{
 		m_material = {};
+		m_id = create_game_object();
 	}
 
 	GameObject::~GameObject()
@@ -12,6 +13,11 @@ namespace halogen
 		m_mesh = nullptr;
 		m_material = {};
 		m_id = -1;
+	}
+
+	uint32_t GameObject::get_id()
+	{
+		return m_id;
 	}
 
 	uint32_t GameObject::create_game_object()

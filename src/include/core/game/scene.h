@@ -28,7 +28,7 @@ namespace halogen
 
 		Material *create_material(VkPipeline pipeline, VkPipelineLayout pipeline_layout, const std::string& name);
 
-		void render_objects(VkCommandBuffer command_buffer, std::vector<GameObject>& game_objects);
+		void render_objects(VkCommandBuffer command_buffer, wrapper::FrameData& frame_data, VmaAllocator allocator);
 
 		bool is_scene_initialzed() const;
 
