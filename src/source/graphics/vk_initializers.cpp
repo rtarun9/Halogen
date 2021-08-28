@@ -235,8 +235,38 @@ namespace halogen::vkinit
     	VmaAllocationCreateInfo allocation_create_info = {};
     	allocation_create_info.usage = memory_usage;
 
-    	vmaCreateBuffer(allocator, &buffer_create_info, &allocation_create_info, &buffer.m_buffer, &buffer.m_allocation, nullptr);
+    	VkResult err = vmaCreateBuffer(allocator, &buffer_create_info, &allocation_create_info, &buffer.m_buffer, &buffer.m_allocation, nullptr);
+		if (err != VK_SUCCESS)
+		{
+			debug::error("Failed to create buffer (allocated buffer)");
+		}
 
     	return buffer;
+	}
+
+	VkDescriptorSetLayoutBinding descriptors::create_descriptor_set_layout_binding(VkDescriptorType descriptor_type, VkShaderStageFlags stage_flags, uint32_t binding)
+	{
+    	VkDescriptorSetLayoutBinding descriptor_set_layout_binding = {};
+    	descriptor_set_layout_binding.binding = binding;
+    	descriptor_set_layout_binding.descriptorCount = 1;
+    	descriptor_set_layout_binding.pImmutableSamplers = nullptr;
+    	descriptor_set_layout_binding.descriptorType = descriptor_type;
+    	descriptor_set_layout_binding.stageFlags = stage_flags;
+
+    	return descriptor_set_layout_binding;
+	}
+
+	VkWriteDescriptorSet descriptors::create_write_descriptor_set(VkDescriptorType descriptor_type, VkDescriptorSet descriptor_set, VkDescriptorBufferInfo* buffer_info, uint32_t binding)
+	{
+    	VkWriteDescriptorSet write_descriptor_set = {};
+    	write_descriptor_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    	write_descriptor_set.pNext = nullptr;
+    	write_descriptor_set.dstBinding = binding;
+    	write_descriptor_set.descriptorCount = 1;
+    	write_descriptor_set.descriptorType = descriptor_type;
+    	write_descriptor_set.pBufferInfo = buffer_info;
+    	write_descriptor_set.dstSet = descriptor_set;
+
+    	return write_descriptor_set;
 	}
 }

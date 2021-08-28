@@ -65,6 +65,7 @@ namespace halogen
 
         //Utilitiy functions
         wrapper::FrameData& get_current_frame();
+		size_t pad_uniform_buffer_size(size_t original_size);
 
         void clean_up();
 
@@ -87,6 +88,8 @@ namespace halogen
         wrapper::Swapchain m_swapchain_wrapper{};
         wrapper::DepthImage m_depth_image_wrapper{};
 		std::array<wrapper::FrameData, configuration::MAX_FRAMES_IN_FLIGHT> m_frames;
+		wrapper::EnvironmentData m_environment_data{};
+		AllocatedBuffer m_environment_parameter{};
 
         VkQueue m_graphics_queue{};
         VkQueue m_presentation_queue_extension{};
@@ -108,6 +111,9 @@ namespace halogen
 
         //Memory allocator so we can do memory allocation
         VmaAllocator m_vma_allocator{};
+
+        //Utilities
+        VkPhysicalDeviceProperties m_physical_device_properties{};
 
         //Meshes
         Mesh m_triangle_mesh{};

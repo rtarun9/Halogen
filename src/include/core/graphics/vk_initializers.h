@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vk_types.h"
+#include "../log.h"
 
 #include <vk_bootstrap.h>
 #include <vk_mem_alloc.h>
@@ -42,5 +43,12 @@ namespace halogen::vkinit
 	namespace buffers
 	{
 		AllocatedBuffer create_buffer(size_t buffer_size, VkBufferUsageFlagBits usage_flags, VmaMemoryUsage memory_usage, VmaAllocator allocator);
+	}
+
+	namespace descriptors
+	{
+    	//binding should never be fixed to null : [TODO] : change later
+		VkDescriptorSetLayoutBinding create_descriptor_set_layout_binding(VkDescriptorType descriptor_type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VkShaderStageFlags stage_flags = VK_SHADER_STAGE_VERTEX_BIT, uint32_t binding = 0);
+		VkWriteDescriptorSet create_write_descriptor_set(VkDescriptorType descriptor_type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VkDescriptorSet descriptor_set = VK_NULL_HANDLE, VkDescriptorBufferInfo *buffer_info = nullptr, uint32_t binding = 0);
 	}
 }

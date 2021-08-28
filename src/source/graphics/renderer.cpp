@@ -208,6 +208,9 @@ namespace halogen
         vma_allocator_create_info.physicalDevice = m_physical_device;
 
         vk_check(vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator), "Failed to initialize VMA");
+
+        vkGetPhysicalDeviceProperties(m_physical_device, &m_physical_device_properties);
+        debug::log("Minimum alignment size for buffers : ", m_physical_device_properties.limits.minUniformBufferOffsetAlignment);
     }
 
     //Uses vk_boostrap to create swapchain.
@@ -461,8 +464,19 @@ namespace halogen
 
     void Renderer::initialize_descriptors()
 	{
+		//Descriptor set 0 : engine global resources, bound once per frame
+		//Descriptor set 1 : Per pass resources, bound once per render pass / subpass
+		//Descriptor set 2 : Material resources
+		//Descriptor set 3 : Per object resources.
+
+		//Multiplying with number of frames because frames point to same buffer.
+		const size_t environment_buffer_size = m_frames.size() * pad_uniform_buffer_size(sizeof(wrapper::EnvironmentData));
+		m_environment_parameter = vkinit::buffers::create_buffer(environment_buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, m_vma_allocator);
+
 		//Create descriptor pool for 10 uniform buffer (10 is just a high number, nothing special about it)
-		VkDescriptorPoolSize descriptor_pools = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10};
+		VkDescriptorPoolSize descriptor_pool = {};
+		descriptor_pool.descriptorCount = 10;
+		descriptor_pool.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
 
@@ -471,29 +485,37 @@ namespace halogen
 		descriptor_pool_create_info.flags = 0;
 		descriptor_pool_create_info.maxSets = 10;
 		descriptor_pool_create_info.poolSizeCount = 1;
-		descriptor_pool_create_info.pPoolSizes = &descriptor_pools;
+		descriptor_pool_create_info.pPoolSizes = &descriptor_pool;
 
 		vk_check(vkCreateDescriptorPool(m_device, &descriptor_pool_create_info, nullptr, &m_descriptor_pool), "Failed to create descriptor pool.");
 
-		//Information about the binding
-		VkDescriptorSetLayoutBinding camera_buffer_binding = {};
-		camera_buffer_binding.binding = 0;
-		camera_buffer_binding.descriptorCount = 1;
-		camera_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		camera_buffer_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		//Information about the binding and the shape of descriptor.
+		VkDescriptorSetLayoutBinding camera_buffer_binding = vkinit::descriptors::create_descriptor_set_layout_binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
+		VkDescriptorSetLayoutBinding environment_buffer_binding = vkinit::descriptors::create_descriptor_set_layout_binding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+
+		VkDescriptorSetLayoutBinding bindings[] = {camera_buffer_binding, environment_buffer_binding};
 
 		VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {};
 		descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptor_set_layout_create_info.pNext = nullptr;
 
-		descriptor_set_layout_create_info.bindingCount = 1;
+		descriptor_set_layout_create_info.bindingCount = 2;
 		descriptor_set_layout_create_info.flags = 0;
-		descriptor_set_layout_create_info.pBindings = &camera_buffer_binding;
+		descriptor_set_layout_create_info.pBindings = &bindings[0];
 
 		vk_check(vkCreateDescriptorSetLayout(m_device, &descriptor_set_layout_create_info, nullptr, &m_global_descriptor_set_layout), "Failed to create global descriptor set layout");
 		for (int i = 0; i < m_frames.size(); i++)
 		{
+			char *environment_data;
 			m_frames[i].m_camera_buffer = vkinit::buffers::create_buffer(sizeof(wrapper::CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, m_vma_allocator);
+			vmaMapMemory(m_vma_allocator, m_frames[i].m_camera_buffer.m_allocation, &m_frames[i].m_mapped_camera_buffer);
+			vmaMapMemory(m_vma_allocator, m_environment_parameter.m_allocation, (void**)&environment_data);
+
+			int frame_index = m_frame_number % m_frames.size();
+
+			environment_data += pad_uniform_buffer_size(sizeof(wrapper::EnvironmentData)) * frame_index;
+			memcpy(environment_data, &m_environment_parameter, sizeof(wrapper::EnvironmentData));
+			vmaUnmapMemory(m_vma_allocator, m_environment_parameter.m_allocation);
 
 			//Allocate one descriptor per frame
 			VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {};
@@ -506,22 +528,22 @@ namespace halogen
 			vk_check(vkAllocateDescriptorSets(m_device, &descriptor_set_allocate_info, &m_frames[i].m_global_descriptor), "Failed to allocate descriptor set for a frame");
 
 			//Buffer we want ot point at in the descriptor
-			VkDescriptorBufferInfo descriptor_buffer_info = {};
-			descriptor_buffer_info.buffer = m_frames[i].m_camera_buffer.m_buffer;
-			descriptor_buffer_info.offset = 0;
-			descriptor_buffer_info.range = sizeof(wrapper::CameraData);
+			VkDescriptorBufferInfo camera_buffer_info = {};
+			camera_buffer_info.buffer = m_frames[i].m_camera_buffer.m_buffer;
+			camera_buffer_info.offset = 0;
+			camera_buffer_info.range = sizeof(wrapper::CameraData);
 
-			VkWriteDescriptorSet set_write = {};
-			set_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			set_write.pNext = nullptr;
+			VkDescriptorBufferInfo environment_buffer_info = {};
+			environment_buffer_info.buffer = m_environment_parameter.m_buffer;
+			environment_buffer_info.offset = pad_uniform_buffer_size(sizeof(wrapper::EnvironmentData)) * i;
+			environment_buffer_info.range = sizeof(wrapper::EnvironmentData);
 
-			set_write.dstBinding = 0;
-			set_write.descriptorCount = 1;
-			set_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			set_write.pBufferInfo = &descriptor_buffer_info;
-			set_write.dstSet = m_frames[i].m_global_descriptor;
+			VkWriteDescriptorSet camera_write = vkinit::descriptors::create_write_descriptor_set(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frames[i].m_global_descriptor, &camera_buffer_info, 0);
+			VkWriteDescriptorSet environment_write = vkinit::descriptors::create_write_descriptor_set(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frames[i].m_global_descriptor, &environment_buffer_info, 1);
 
-			vkUpdateDescriptorSets(m_device, 1, &set_write, 0, nullptr);
+			VkWriteDescriptorSet descriptor_write_sets[] = {camera_write, environment_write};
+
+			vkUpdateDescriptorSets(m_device, 2, descriptor_write_sets, 0, nullptr);
 		}
 	}
     //Pipeline related stuff, move later
@@ -532,7 +554,7 @@ namespace halogen
         VkShaderModule triangle_fragment_shader_module;
 
         pipeline_utils::create_shader_module(m_device, "vertex_buffer_vertex_shader.spv", &triangle_vertex_shader_module);
-        pipeline_utils::create_shader_module(m_device, "vertex_buffer_fragment_shader.spv", &triangle_fragment_shader_module);
+        pipeline_utils::create_shader_module(m_device, "default_env_lit.spv", &triangle_fragment_shader_module);
 
         VertexInputDescription vertex_input_description = Vertex::get_vertex_input_description();
 
@@ -710,6 +732,22 @@ namespace halogen
 	wrapper::FrameData& Renderer::get_current_frame()
 	{
 		return m_frames[m_frame_number % configuration::MAX_FRAMES_IN_FLIGHT];
+	}
+
+	size_t Renderer::pad_uniform_buffer_size(size_t original_size)
+	{
+		size_t minimum_uniform_buffer_alignment = m_physical_device_properties.limits.minUniformBufferOffsetAlignment;
+		size_t aligned_size = original_size;
+
+		//This part is from Sascha Williams vulkan samples
+		//https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
+
+		if (minimum_uniform_buffer_alignment > 0)
+		{
+			aligned_size = (aligned_size + minimum_uniform_buffer_alignment - 1) & ~(minimum_uniform_buffer_alignment - 1);
+		}
+
+		return aligned_size;
 	}
 
     void Renderer::clean_up()

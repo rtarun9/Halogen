@@ -11,4 +11,4 @@ glslc ../shaders/plain_triangle_fragment_shader.frag -o plain_triangle_fragment_
 echo "Compiling VERTEX BUFFER triangle shaders"
 
 glslc ../shaders/vertex_buffer_vertex_shader.vert -o vertex_buffer_vertex_shader.spv
-glslc ../shaders/vertex_buffer_fragment_shader.frag -o vertex_buffer_fragment_shader.spv
+glslc ../shaders/default_env_lit.frag -o default_env_lit.spv

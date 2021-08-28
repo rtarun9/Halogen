@@ -192,4 +192,14 @@ namespace halogen::math
 
 		return result;
 	}
+
+	inline Vector3f get_homogeneous_vector(const Vector4f& vec)
+	{
+		Vector3f result(0.0f);
+		result.m_x = vec.m_x / vec.m_w;
+		result.m_y = vec.m_y / vec.m_w;
+		result.m_z = vec.m_z / vec.m_w;
+
+		return result;
+	}
 }

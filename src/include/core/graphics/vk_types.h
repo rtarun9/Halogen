@@ -89,6 +89,17 @@ namespace halogen
 		{
 			glm::mat4 m_view_mat;
 			glm::mat4 m_projection_mat;
+
+			//To avoid multiplication of matrix in shader
+			glm::mat4 m_vp_mat;
+		};
+
+		//Size : 16 * 3 = 48 (does not meet any of the alignments for GPU).
+		struct EnvironmentData
+		{
+			glm::vec4 m_fog_color;
+			glm::vec4 m_fog_distance;
+			glm::vec4 m_ambient_color;
 		};
 
 		struct FrameData
@@ -103,6 +114,10 @@ namespace halogen
 			//Buffer for the camera
 			AllocatedBuffer m_camera_buffer;
 			VkDescriptorSet m_global_descriptor;
+
+			//Holds where the location of mapped memory
+			void *m_mapped_camera_buffer;
+			void *m_mapped_environment_buffer;
 		};
 
 		struct Swapchain

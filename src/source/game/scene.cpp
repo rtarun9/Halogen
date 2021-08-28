@@ -56,7 +56,7 @@ namespace halogen
 		}
 	}
 
-	void Scene::render_objects(VkCommandBuffer command_buffer, wrapper::FrameData& frame_data, VmaAllocator allocator)
+	void Scene::render_objects(VkCommandBuffer& command_buffer, wrapper::FrameData& frame_data, VmaAllocator& allocator)
 	{
 		glm::vec3 camera_position = m_camera.m_camera_position;
 
@@ -94,14 +94,10 @@ namespace halogen
 			wrapper::CameraData camera_data = {};
 			camera_data.m_projection_mat = projection;
 			camera_data.m_view_mat = view_mat;
+			camera_data.m_vp_mat = projection * view_mat;
 
 			//Copy to buffer
-			void *data;
-
-			//Note : something is broken here : very poor FPS.
-			vmaMapMemory(allocator, frame_data.m_camera_buffer.m_allocation, &data);
-			memcpy(data, &camera_data, sizeof(wrapper::CameraData));
-			vmaUnmapMemory(allocator, frame_data.m_camera_buffer.m_allocation);
+			memcpy(frame_data.m_mapped_camera_buffer, &camera_data, sizeof(wrapper::CameraData));
 
 			if (object.m_mesh != last_mesh)
 			{
