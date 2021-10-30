@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Shader bytecode
+*.spv
+
+# Cmake specific stuff
+*.json
