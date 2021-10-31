@@ -8,7 +8,10 @@ find_package(Vulkan)
 
 set(SDL_INCLUDE_DIR "C:/Libs/SDL2-2.0.16/include")
 
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+
 add_subdirectory(src)
+add_subdirectory(third_party)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 
@@ -17,7 +20,7 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/shaders/*.frag"
     "${PROJECT_SOURCE_DIR}/shaders/*.vert"
     "${PROJECT_SOURCE_DIR}/shaders/*.comp"
-    )
+)
 
 ## iterate each shader
 foreach(GLSL ${GLSL_SOURCE_FILES})
@@ -36,4 +39,4 @@ endforeach(GLSL)
 add_custom_target(
     Shaders 
     DEPENDS ${SPIRV_BINARY_FILES}
-    )
+)

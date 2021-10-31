@@ -2,6 +2,8 @@
 
 #include "vk_types.h"
 
+#include <vector>
+
 struct SDL_Window;
 
 namespace halo
@@ -18,14 +20,53 @@ namespace halo
 	private:
 		void render();
 
-	private:
-		bool m_isInitialized{false};
-		int m_frameNumber{0};
+		void initialize_vulkan();
 
-		int m_windowWidth{1080};
-		int m_windowHeight{720};
+		void initialize_swapchain();
+		void initialize_command_objects();
+
+		void initialize_renderpass();
+		void initialize_framebuffers();
+
+		void initialize_synchronization_objects();
+
+	private:
+		bool m_is_initialized{false};
+		int m_frame_number{0};
+
+		int m_window_width{1080};
+		int m_window_height{720};
 
 		SDL_Window *m_window{nullptr};
-		VkExtent2D m_windowExtent{(uint32_t)m_windowWidth, (uint32_t)m_windowHeight};
+		VkExtent2D m_window_extent{static_cast<uint32_t>(m_window_width), static_cast<uint32_t>(m_window_height)};
+		
+		// Main vulkan objects
+		VkInstance m_instance;
+		VkDebugUtilsMessengerEXT m_debug_messenger;
+		
+		VkPhysicalDevice m_physical_device;
+		VkDevice m_device;
+
+		VkSurfaceKHR m_surface;
+
+		VkSwapchainKHR  m_swapchain;
+		VkFormat m_swapchain_image_format;
+		std::vector<VkImage> m_swapchain_images;
+		std::vector<VkImageView> m_swapchain_image_views;
+
+		VkQueue m_graphics_queue;
+
+		// index of the queue family that is required (this will be for both graphics and presentation).
+		uint32_t m_graphics_queue_family;
+
+		VkCommandPool m_command_pool;
+		VkCommandBuffer m_command_buffer;
+
+		VkRenderPass m_renderpass;
+		std::vector<VkFramebuffer> m_framebuffers;
+
+		VkFence m_render_fence;
+		VkSemaphore m_render_semaphore;
+		VkSemaphore m_present_semaphore;
 	};
 }
