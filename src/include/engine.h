@@ -29,6 +29,10 @@ namespace halo
 		void initialize_framebuffers();
 
 		void initialize_synchronization_objects();
+		
+		void initialize_pipeline();
+
+		void load_shaders(const char *file_path, VkShaderModule& shader_module);
 
 	private:
 		bool m_is_initialized{false};
@@ -40,7 +44,7 @@ namespace halo
 		SDL_Window *m_window{nullptr};
 		VkExtent2D m_window_extent{static_cast<uint32_t>(m_window_width), static_cast<uint32_t>(m_window_height)};
 		
-		// Main vulkan objects
+		// Main vulkan handles
 		VkInstance m_instance;
 		VkDebugUtilsMessengerEXT m_debug_messenger;
 		
@@ -65,8 +69,12 @@ namespace halo
 		VkRenderPass m_renderpass;
 		std::vector<VkFramebuffer> m_framebuffers;
 
+		// fence : GPU to CPU, semaphore : GPU to GPU
 		VkFence m_render_fence;
 		VkSemaphore m_render_semaphore;
 		VkSemaphore m_present_semaphore;
+
+		VkPipeline m_triangle_pipeline;
+		VkPipelineLayout m_triangle_pipeline_layout;
 	};
 }

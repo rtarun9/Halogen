@@ -1,6 +1,7 @@
 #include "../include/engine.h"
 
 #include "../include/vk_initializers.h"
+#include "../include/vk_pipeline.h"
 
 #include <VkBootstrap.h>
 
@@ -8,7 +9,9 @@
 #include <SDL_vulkan.h>
 
 #include <iostream>
+#include <fstream>
 
+#define ONE_SECOND 1000000000
 #define VK_CHECK(x) {VkResult res = x; if (res) {std::cout << "Vulkan Error : " << res << '\n'; __debugbreak(); exit(EXIT_FAILURE);}}
 
 namespace halo
@@ -40,6 +43,7 @@ namespace halo
 		initialize_renderpass();
 		initialize_framebuffers();
 		initialize_synchronization_objects();
+		initialize_pipeline();
 
 		m_is_initialized = true;
 	}
@@ -65,13 +69,13 @@ namespace halo
 
 	void Engine::render()
 	{
-		// wait until rendering of last frame has occured. max wait time is one second
-		VK_CHECK(vkWaitForFences(m_device, 1, &m_render_fence, true, 11000000000));
+		// wait until rendering of last frame has occured. max wait time is one second (in function ns is given).
+		VK_CHECK(vkWaitForFences(m_device, 1, &m_render_fence, true, ONE_SECOND));
 		VK_CHECK(vkResetFences(m_device, 1, &m_render_fence));
 
-		// for now, we are waiting on the presentation of previous frame to finish before acquiring next frame.
+		// we will signal the presentation semaphore when the swapchain is ready for presentation
 		uint32_t swapchain_image_index = 0;
-		VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 1000000000, m_present_semaphore, nullptr, &swapchain_image_index));
+		VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, ONE_SECOND, m_present_semaphore, nullptr, &swapchain_image_index));
 		
 		VK_CHECK(vkResetCommandBuffer(m_command_buffer, 0));
 
@@ -81,14 +85,13 @@ namespace halo
 		command_buffer_begin_info.pInheritanceInfo = nullptr;
 		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-		// indicating to vulkan that this command buffer will be submitted once (since its recording everyframe, doestn matter).
+		// indicating to vulkan that this command buffer will be submitted once (since its recording everyframe, doesnt matter).
 		VK_CHECK(vkBeginCommandBuffer(m_command_buffer, &command_buffer_begin_info));
 		
 		VkClearValue clear_value = {};
-		clear_value.color = {{0.0f, 0.0f, abs(sin(m_frame_number / 120.0f))}};
+		clear_value.color = {{abs(cos(m_frame_number / 120.0f)), 0.0f, abs(sin(m_frame_number / 120.0f))}};
 		
 		// start renderpass
-
 		VkRenderPassBeginInfo renderpass_begin_info = {};
 		renderpass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderpass_begin_info.pNext = nullptr;
@@ -101,12 +104,14 @@ namespace halo
 
 		vkCmdBeginRenderPass(m_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
+		vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
+		vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
+
 		vkCmdEndRenderPass(m_command_buffer);
 
 		VK_CHECK(vkEndCommandBuffer(m_command_buffer));
 
 		// prepare for submission to queue
-
 		VkSubmitInfo submit_info = {};
 		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submit_info.pNext = nullptr;
@@ -126,6 +131,7 @@ namespace halo
 		submit_info.commandBufferCount = 1;
 		submit_info.pCommandBuffers = &m_command_buffer;
 
+		// signal the render fence when rendering is complete.
 		VK_CHECK(vkQueueSubmit(m_graphics_queue, 1, &submit_info, m_render_fence));
 
 		// presentation on screen
@@ -215,16 +221,17 @@ namespace halo
 		VkCommandPoolCreateInfo command_pool_create_info = init::create_command_pool(m_graphics_queue_family);
 		VK_CHECK(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pool));
 
+		// about life cycle of command buffer : https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap6.html#commandbuffers-lifecycle
 		VkCommandBufferAllocateInfo command_buffer_allocate_info = init::create_command_buffer_allocate(m_command_pool);
 		VK_CHECK(vkAllocateCommandBuffers(m_device, &command_buffer_allocate_info, &m_command_buffer));
 	}
 
-	// NOTE (tarun) : renderpass stores the state of images rendering into, and the state needed to setup the target framebuffer for rendering.
+	// renderpass stores the state of images rendering into, and the state needed to setup the target framebuffer for rendering.
 	void Engine::initialize_renderpass()
 	{
 		// created before framebuffers, as the frame buffers are made for a specefic renderpass.
 
-		// create and setup description of image we are rendering into
+		// create and setup description of image we are rendering into (the color attachment we are rendering to).
 		VkAttachmentDescription color_attachment_desc = {};
 		color_attachment_desc.format = m_swapchain_image_format;
 		color_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -241,6 +248,7 @@ namespace halo
 		// store in optimal format for presentation
 		color_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+		// VkAttachmenReference::attachment is the index of the attachment used  (from pAttachments in VkRenderpassCreateInfo): here it is 0 since there is only one attachment.
 		VkAttachmentReference color_attachment_ref = {};
 		color_attachment_ref.attachment = 0;
 		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -249,7 +257,6 @@ namespace halo
 		subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass_desc.colorAttachmentCount = 1;
 		subpass_desc.pColorAttachments = &color_attachment_ref;
-		
 		
 		VkRenderPassCreateInfo renderpass_create_info = {};
 		renderpass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -268,10 +275,13 @@ namespace halo
 		VkFramebufferCreateInfo framebuffer_create_info = {};
 		framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebuffer_create_info.pNext = nullptr;
+
 		framebuffer_create_info.attachmentCount = 1;
+
 		framebuffer_create_info.width = m_window_extent.width;
 		framebuffer_create_info.height = m_window_extent.height;
 		framebuffer_create_info.layers = 1;
+
 		framebuffer_create_info.renderPass = m_renderpass;
 
 		m_framebuffers.resize(m_swapchain_image_views.size());
@@ -285,6 +295,7 @@ namespace halo
 
 	void Engine::initialize_synchronization_objects()
 	{
+		// the flag of fence is set ot signaled bit. This is done for the edge case (first iteration of render loop).
 		VkFenceCreateInfo fence_create_info = {};
 		fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fence_create_info.pNext = nullptr;
@@ -299,6 +310,88 @@ namespace halo
 
 		VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_render_semaphore));
 		VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_present_semaphore));
+	}
+
+	void Engine::initialize_pipeline()
+	{
+		VkShaderModule simple_triangle_vertex_module;
+		load_shaders("../shaders/simple_triangle.vert.spv", simple_triangle_vertex_module);
+
+		VkShaderModule simple_triangle_fragment_module;
+		load_shaders("../shaders/simple_triangle.frag.spv", simple_triangle_fragment_module);
+		
+
+
+		VkPipelineLayoutCreateInfo pipeline_layout_info = init::create_pipeline_layout();
+		VK_CHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_info, nullptr, &m_triangle_pipeline_layout));
+
+		PipelineBuilder pipeline_builder;
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, simple_triangle_fragment_module));
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, simple_triangle_vertex_module));
+
+		pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
+
+		pipeline_builder.m_input_assembler = init::create_input_assembler();
+
+		pipeline_builder.m_viewport.x = 0.0f;
+		pipeline_builder.m_viewport.y = 0.0f;
+		pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
+		pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
+		pipeline_builder.m_viewport.maxDepth = 1.0f;
+		pipeline_builder.m_viewport.minDepth = 1.0f;
+
+		pipeline_builder.m_scissor.offset = {0, 0};
+		pipeline_builder.m_scissor.extent = m_window_extent;
+
+		pipeline_builder.m_rasterizer_state_info = init::create_rasterizer_state();
+
+		pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
+
+		pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
+
+		pipeline_builder.m_pipeline_layout = m_triangle_pipeline_layout;
+
+		m_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
+	}
+
+	void Engine::load_shaders(const char* file_path, VkShaderModule& shader_module)
+	{
+		shader_module = {};
+
+		// moving cursor to the end makes finding size very easy, and since .spv is in binary, the std::ios::binary flag is used.
+		std::ifstream file(file_path, std::ios::ate |  std::ios::binary);
+
+		if (!file.is_open())
+		{
+			std::cout << "Failed to open file with path : " << file_path;
+			exit(EXIT_FAILURE);
+		}
+
+		size_t file_size = (size_t)(file.tellg());
+
+		// technicality of spirv : file contents are expected to be in uint32
+		std::vector<uint32_t> file_contents(file_size / sizeof(uint32_t));
+
+		file.seekg(0);
+
+		// load file contents into the buffer
+		file.read((char*)file_contents.data(), file_size);
+
+		file.close();
+
+		VkShaderModuleCreateInfo shader_module_create_info = {};
+		shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shader_module_create_info.pNext = nullptr;
+
+		// the codeSize member is expected to be in bytes.
+		shader_module_create_info.codeSize = sizeof(uint32_t) * file_contents.size();
+		shader_module_create_info.pCode = file_contents.data();
+
+		VkResult res = (vkCreateShaderModule(m_device, &shader_module_create_info, nullptr, &shader_module));
+		if (res != VK_SUCCESS)
+		{
+			std::cout << "ERROR IN : " << file_path;
+		}
 	}
 
 	void Engine::clean()

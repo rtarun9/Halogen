@@ -9,4 +9,16 @@ namespace halo::init
 	
 	// default level : VK_COMMAND_BUFFER_LEVEL_PRIMARY : Since they are mainly used for submission to queues.
 	VkCommandBufferAllocateInfo create_command_buffer_allocate(VkCommandPool command_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	// pipeline related helper functinos
+
+	VkPipelineShaderStageCreateInfo create_shader_stage(VkShaderStageFlagBits shader_stage, VkShaderModule shader_module);
+	VkPipelineVertexInputStateCreateInfo create_vertex_input_state();
+	VkPipelineInputAssemblyStateCreateInfo create_input_assembler();
+	VkPipelineRasterizationStateCreateInfo create_rasterizer_state();
+	VkPipelineMultisampleStateCreateInfo create_multisampling_info();
+	VkPipelineColorBlendAttachmentState create_color_blend_state();
+
+	// pipeline layout : information of shader inputs
+	VkPipelineLayoutCreateInfo create_pipeline_layout();
 }
