@@ -16,7 +16,7 @@ namespace halo
 		viewport_state_info.scissorCount = 1;
 		viewport_state_info.pScissors = &m_scissor;
 
-		// Dummy color blending
+		// dummy color blending - blending is "none.
 		VkPipelineColorBlendStateCreateInfo color_blend_state = {};
 		color_blend_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		color_blend_state.pNext = nullptr;

@@ -1,5 +1,6 @@
 #include "../include/engine.h"
 
+#include "../include/vk_types.h"
 #include "../include/vk_initializers.h"
 #include "../include/vk_pipeline.h"
 
@@ -12,7 +13,10 @@
 #include <fstream>
 
 #define ONE_SECOND 1000000000
-#define VK_CHECK(x) {VkResult res = x; if (res) {std::cout << "Vulkan Error : " << res << '\n'; __debugbreak(); exit(EXIT_FAILURE);}}
+#define VK_CHECK(x) {VkResult res = x; if (res) {std::cout << "Vulkan Error : " << res << '\n'; exit(EXIT_FAILURE);}}
+
+// random variables for testing
+int selected_pipeline = 0;
 
 namespace halo
 {
@@ -61,6 +65,21 @@ namespace halo
 				{
 					quit = true;
 				}
+
+				const Uint8 *keyboard_state = SDL_GetKeyboardState(nullptr);
+				if (keyboard_state[SDL_SCANCODE_R])
+				{
+					selected_pipeline = 1;
+				}
+				else if (keyboard_state[SDL_SCANCODE_F])
+				{
+					selected_pipeline = 0;
+				}
+
+				if (keyboard_state[SDL_SCANCODE_ESCAPE])
+				{
+					quit = true;
+				}
 			}
 
 			render();
@@ -104,7 +123,15 @@ namespace halo
 
 		vkCmdBeginRenderPass(m_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
+		if (selected_pipeline == 0)
+		{
+			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
+		}
+		else
+		{
+			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_inverted_triangle_pipeline);
+		}
+
 		vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
 
 		vkCmdEndRenderPass(m_command_buffer);
@@ -214,12 +241,15 @@ namespace halo
 		m_swapchain_image_views = vkb_swapchain.get_image_views().value();
 	
 		m_swapchain_image_format = vkb_swapchain.image_format;
+
+		m_deletors.push_function([=](){vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);});
 	}
 
 	void Engine::initialize_command_objects()
 	{
 		VkCommandPoolCreateInfo command_pool_create_info = init::create_command_pool(m_graphics_queue_family);
 		VK_CHECK(vkCreateCommandPool(m_device, &command_pool_create_info, nullptr, &m_command_pool));
+		m_deletors.push_function([=](){vkDestroyCommandPool(m_device, m_command_pool, nullptr);});
 
 		// about life cycle of command buffer : https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap6.html#commandbuffers-lifecycle
 		VkCommandBufferAllocateInfo command_buffer_allocate_info = init::create_command_buffer_allocate(m_command_pool);
@@ -267,6 +297,8 @@ namespace halo
 		renderpass_create_info.pSubpasses = &subpass_desc;
 		
 		VK_CHECK(vkCreateRenderPass(m_device, &renderpass_create_info, nullptr, &m_renderpass));
+		
+		m_deletors.push_function([=](){vkDestroyRenderPass(m_device, m_renderpass, nullptr);});
 	}
 	
 	void Engine::initialize_framebuffers()
@@ -290,6 +322,8 @@ namespace halo
 		{
 			framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
 			VK_CHECK(vkCreateFramebuffer(m_device, &framebuffer_create_info, nullptr, &m_framebuffers[i]));
+			m_deletors.push_function([=](){vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);});
+			m_deletors.push_function([=](){vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);});
 		}
 	}
 
@@ -302,6 +336,7 @@ namespace halo
 		fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 		VK_CHECK(vkCreateFence(m_device, &fence_create_info, nullptr, &m_render_fence));
+		m_deletors.push_function([=](){vkDestroyFence(m_device, m_render_fence, nullptr);});
 
 		VkSemaphoreCreateInfo semaphore_create_info = {};
 		semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -310,6 +345,9 @@ namespace halo
 
 		VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_render_semaphore));
 		VK_CHECK(vkCreateSemaphore(m_device, &semaphore_create_info, nullptr, &m_present_semaphore));
+
+		m_deletors.push_function([=](){vkDestroySemaphore(m_device, m_render_semaphore, nullptr);});
+		m_deletors.push_function([=](){vkDestroySemaphore(m_device, m_present_semaphore, nullptr);});
 	}
 
 	void Engine::initialize_pipeline()
@@ -320,14 +358,16 @@ namespace halo
 		VkShaderModule simple_triangle_fragment_module;
 		load_shaders("../shaders/simple_triangle.frag.spv", simple_triangle_fragment_module);
 		
-
-
 		VkPipelineLayoutCreateInfo pipeline_layout_info = init::create_pipeline_layout();
 		VK_CHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_info, nullptr, &m_triangle_pipeline_layout));
+		m_deletors.push_function([=](){vkDestroyPipelineLayout(m_device, m_triangle_pipeline_layout, nullptr);});
 
 		PipelineBuilder pipeline_builder;
 		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, simple_triangle_fragment_module));
 		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, simple_triangle_vertex_module));
+
+		m_deletors.push_function([=](){vkDestroyShaderModule(m_device, simple_triangle_fragment_module, nullptr);});
+		m_deletors.push_function([=](){vkDestroyShaderModule(m_device, simple_triangle_vertex_module, nullptr);});
 
 		pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
 
@@ -352,6 +392,26 @@ namespace halo
 		pipeline_builder.m_pipeline_layout = m_triangle_pipeline_layout;
 
 		m_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
+		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);});
+
+		// setup for the inverted triangle pipeline
+		VkShaderModule inverted_vertex_shader;
+		VkShaderModule inverted_fragment_shader;
+
+		load_shaders("../shaders/simple_inverted_triangle.vert.spv", inverted_vertex_shader);
+		load_shaders("../shaders/simple_triangle.frag.spv", inverted_fragment_shader);
+
+		pipeline_builder.m_shader_stages.clear();
+
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, inverted_vertex_shader));
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, inverted_fragment_shader));
+
+		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_vertex_shader, nullptr); });
+		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_fragment_shader, nullptr); });
+
+
+		m_inverted_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
+		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_inverted_triangle_pipeline, nullptr);});
 	}
 
 	void Engine::load_shaders(const char* file_path, VkShaderModule& shader_module)
@@ -399,25 +459,7 @@ namespace halo
 		vkDeviceWaitIdle(m_device);
 
 		// vulkan objects must be destroyed in reverse the order they are created in.
-
-		vkDestroySemaphore(m_device, m_render_semaphore, nullptr);
-		vkDestroySemaphore(m_device, m_present_semaphore, nullptr);
-		vkDestroyFence(m_device, m_render_fence, nullptr);
-
-		// command pool will automatically destroy the command buffers allocated from it.
-		vkDestroyCommandPool(m_device, m_command_pool, nullptr);
-
-		vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
-		
-		vkDestroyRenderPass(m_device, m_renderpass, nullptr);
-
-		// images are destroed when swapchain is destroyed (since the swapchain own's those images).
-		// framebuffers need to be deleted along with image views, since framebuffer holds attachments to them.
-		for (int i = 0; i < m_swapchain_image_views.size(); i++)
-		{
-			vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);
-			vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);
-		}
+		m_deletors.clear_deletor_list();
 
 		vkDestroyDevice(m_device, nullptr);
 		vkDestroySurfaceKHR(m_instance, m_surface, nullptr);

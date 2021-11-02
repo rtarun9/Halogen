@@ -39,5 +39,5 @@ endforeach(GLSL)
 
 add_custom_target(
     run ALL
-    DEPENDS ${SPIRV_BINARY_FILES}
+    DEPENDS ${SPIRV_BINARY_FILES} 
     )

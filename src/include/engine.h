@@ -5,6 +5,7 @@
 #include <vector>
 
 struct SDL_Window;
+struct halo::DeletionList;
 
 namespace halo
 {
@@ -75,6 +76,11 @@ namespace halo
 		VkSemaphore m_present_semaphore;
 
 		VkPipeline m_triangle_pipeline;
+		VkPipeline m_inverted_triangle_pipeline;
+
 		VkPipelineLayout m_triangle_pipeline_layout;
+
+		// utility / helper members
+		DeletionList m_deletors;
 	};
 }

@@ -3,10 +3,7 @@ A simple and small graphics engine. This project uses SDL2 for windowing / input
 The purpose of making this engine is to : try out graphics programming concepts, learn more about GPU's, and improve my programming skills.
 Since this is not meant to be a full on "Graphics engine" and more of a test project for learning, the code will be very messy.
 # Building the project
-The bin directory contains two scripts. Use the build.sh script to build the project. 
-You will need to have a C++ 17 Compiler, Cmake, Glslc (Google's GLSL to Spir-V compiler), and SDL2 installed. 
-If you do not want to use find_package() in Cmake, you need to modify CMakeLists and add 
-your own paths.
+You will need to manually set path to SDL, and have the Vulkan SDK (Version 1.1+) installed. glslangValidator should be available for shader compilation.
 
 # External libraries
 Uses vk_bootstrap for a clean way to initialize core parts of vulkan. \
