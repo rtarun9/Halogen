@@ -4,7 +4,12 @@
 #include "../include/vk_initializers.h"
 #include "../include/vk_pipeline.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <VkBootstrap.h>
+
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -48,6 +53,8 @@ namespace halo
 		initialize_framebuffers();
 		initialize_synchronization_objects();
 		initialize_pipeline();
+
+		load_meshes();
 
 		m_is_initialized = true;
 	}
@@ -123,16 +130,34 @@ namespace halo
 
 		vkCmdBeginRenderPass(m_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		if (selected_pipeline == 0)
+		/*if (selected_pipeline == 0)
 		{
 			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
 		}
 		else
 		{
 			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_inverted_triangle_pipeline);
-		}
+		}*/
 
-		vkCmdDraw(m_command_buffer, 3, 1, 0, 0);
+		vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_mesh_pipeline);
+		
+		// bind vertex buffer with offset 0
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_allocated_buffer.m_buffer, &offset);
+
+		// test out push constants
+		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)m_window_width / m_window_height, 0.1f, 100.0f);
+	
+		projection[1][1] *= -1;
+
+		glm::mat4 model_mat = glm::rotate(glm::mat4(1.0f), glm::radians(m_frame_number * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		PushConstants push_constants;
+		push_constants.m_transform_mat = projection * view * model_mat;
+
+		vkCmdPushConstants(m_command_buffer, m_mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
+		vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
 
 		vkCmdEndRenderPass(m_command_buffer);
 
@@ -218,6 +243,12 @@ namespace halo
 		vkGetPhysicalDeviceProperties(m_physical_device, &device_properties);
 		
 		std::cout << "Device chosen : "  << device_properties.deviceName<< '\n';
+		
+		VmaAllocatorCreateInfo vma_allocator_create_info = {};
+		vma_allocator_create_info.device = m_device;
+		vma_allocator_create_info.instance = m_instance;
+		vma_allocator_create_info.physicalDevice = m_physical_device;
+		vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator);
 	}
 
 	void Engine::initialize_swapchain()
@@ -405,13 +436,56 @@ namespace halo
 
 		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, inverted_vertex_shader));
 		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, inverted_fragment_shader));
-
+	
 		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_vertex_shader, nullptr); });
 		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_fragment_shader, nullptr); });
 
-
 		m_inverted_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
 		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_inverted_triangle_pipeline, nullptr);});
+
+		// setup triangle "mesh" pipeline
+
+		VkShaderModule mesh_triangle_vert;
+		load_shaders("../shaders/triangle_mesh.vert.spv", mesh_triangle_vert);
+
+		VkShaderModule mesh_triangle_frag;
+		load_shaders("../shaders/simple_triangle.frag.spv", mesh_triangle_frag);
+
+		pipeline_builder.m_shader_stages.clear();
+
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, mesh_triangle_vert));
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, mesh_triangle_frag));
+
+		VertexInputLayoutDescription vertex_input_layout_desc = Vertex::get_vertex_input_layout_description();
+
+		pipeline_builder.m_vertex_input_info.vertexBindingDescriptionCount = vertex_input_layout_desc.m_bindings.size();
+		pipeline_builder.m_vertex_input_info.pVertexBindingDescriptions = vertex_input_layout_desc.m_bindings.data();
+
+		pipeline_builder.m_vertex_input_info.vertexAttributeDescriptionCount = vertex_input_layout_desc.m_attributes.size();
+		pipeline_builder.m_vertex_input_info.pVertexAttributeDescriptions = vertex_input_layout_desc.m_attributes.data();
+
+		// set up pipeline layout (now with push constants)
+		VkPipelineLayoutCreateInfo mesh_pipeline_layout_create_info = init::create_pipeline_layout();
+
+		VkPushConstantRange push_constant;
+		push_constant.offset = 0;
+		push_constant.size = sizeof(PushConstants);
+		push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		mesh_pipeline_layout_create_info.pPushConstantRanges = &push_constant;
+		mesh_pipeline_layout_create_info.pushConstantRangeCount = 1;
+
+		VK_CHECK(vkCreatePipelineLayout(m_device, &mesh_pipeline_layout_create_info, nullptr, &m_mesh_pipeline_layout));
+
+		pipeline_builder.m_pipeline_layout = m_mesh_pipeline_layout;
+
+		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, mesh_triangle_vert, nullptr); });
+		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, mesh_triangle_frag, nullptr); });
+
+		m_triangle_mesh_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
+
+		m_deletors.push_function([=](){vkDestroyPipelineLayout(m_device, m_mesh_pipeline_layout, nullptr);});
+		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_triangle_mesh_pipeline, nullptr);});
 	}
 
 	void Engine::load_shaders(const char* file_path, VkShaderModule& shader_module)
@@ -454,12 +528,56 @@ namespace halo
 		}
 	}
 
+	void Engine::load_meshes()
+	{
+		// setup mesh for the triangle
+		m_triangle_mesh.m_vertices.resize(3);
+
+		m_triangle_mesh.m_vertices[0].m_position = {0.0f, -0.5f, 0.0f};
+		m_triangle_mesh.m_vertices[1].m_position = {0.5f, 0.5f, 0.0f};
+		m_triangle_mesh.m_vertices[2].m_position = {-0.5f, 0.5f, 0.0f};
+
+		m_triangle_mesh.m_vertices[0].m_color = {0.0f, 1.0f, 0.0f};
+		m_triangle_mesh.m_vertices[1].m_color = {0.0f, 0.0f, 1.0f};
+		m_triangle_mesh.m_vertices[2].m_color = {1.0f, 0.0f, 0.0f};
+
+		upload_meshes(m_triangle_mesh);
+	}
+
+	void Engine::upload_meshes(Mesh& mesh)
+	{
+		// Allocate and create vertex buffer
+		VkBufferCreateInfo buffer_create_info = {};
+		buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		buffer_create_info.pNext = nullptr;
+		buffer_create_info.size = sizeof(Vertex) * mesh.m_vertices.size();
+		buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+		// Vma will allocate buffer such that it is writable by the CPU, and can be read from GPU
+		VmaAllocationCreateInfo allocation_create_info = {};
+		allocation_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		VK_CHECK(vmaCreateBuffer(m_vma_allocator, &buffer_create_info, &allocation_create_info, &mesh.m_allocated_buffer.m_buffer, &mesh.m_allocated_buffer.m_allocation_data, nullptr));
+		m_deletors.push_function([=](){vmaDestroyBuffer(m_vma_allocator, mesh.m_allocated_buffer.m_buffer, mesh.m_allocated_buffer.m_allocation_data);});
+		
+		// since buffer is now created, the actual vertices data can be copied into a GPU readable memory region
+		void *data;
+		vmaMapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation_data, &data);
+
+		memcpy(data, mesh.m_vertices.data(), mesh.m_vertices.size() * sizeof(Vertex));
+
+		vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation_data);
+	}
+
+
 	void Engine::clean()
 	{
 		vkDeviceWaitIdle(m_device);
 
 		// vulkan objects must be destroyed in reverse the order they are created in.
 		m_deletors.clear_deletor_list();
+
+		vmaDestroyAllocator(m_vma_allocator);
 
 		vkDestroyDevice(m_device, nullptr);
 		vkDestroySurfaceKHR(m_instance, m_surface, nullptr);

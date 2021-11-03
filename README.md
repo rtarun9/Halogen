@@ -17,4 +17,5 @@ Link : https://github.com/tinyobjloader/tinyobjloader
 # Goals in the future
 Ui (Integrating DearImGui) \
 Custom ECS \
-Custom math library (currently using GLM).
+Custom math library (currently using GLM). \
+Test out dynamic rendering (no renderpass / framebuffers) {https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_dynamic_rendering.html}

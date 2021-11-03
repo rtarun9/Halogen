@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Vulkan)
 
-set(SDL_INCLUDE_DIR "C:/Libs/SDL2-2.0.16/include")
-
 add_subdirectory(third_party)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
@@ -27,7 +25,7 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
 foreach(GLSL ${GLSL_SOURCE_FILES})
   message(STATUS "BUILDING SHADER")
   get_filename_component(FILE_NAME ${GLSL} NAME)
-  set(SPIRV "${PROJECT_SOURCE_DIR}/shaders/${FILE_NAME}.spv")
+  set(SPIRV "${PROJECT_SOURCE_DIR}/shaders/${FILE_NAME}.spv" )
   message(STATUS ${GLSL})
   ##execute glslang command to compile that specific shader
   add_custom_command(

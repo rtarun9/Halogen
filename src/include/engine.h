@@ -1,11 +1,14 @@
 #pragma once
 
 #include "vk_types.h"
+#include "vk_mesh.h"
 
+#include <vk_mem_alloc.h>
 #include <vector>
 
 struct SDL_Window;
 struct halo::DeletionList;
+struct halo::AllocatedBuffer;
 
 namespace halo
 {
@@ -34,6 +37,9 @@ namespace halo
 		void initialize_pipeline();
 
 		void load_shaders(const char *file_path, VkShaderModule& shader_module);
+		void load_meshes();
+
+		void upload_meshes(Mesh& mesh);
 
 	private:
 		bool m_is_initialized{false};
@@ -82,5 +88,12 @@ namespace halo
 
 		// utility / helper members
 		DeletionList m_deletors;
+
+		VmaAllocator m_vma_allocator;
+
+		VkPipeline m_triangle_mesh_pipeline;
+		VkPipelineLayout m_mesh_pipeline_layout;
+
+		Mesh m_triangle_mesh;
 	};
 }
