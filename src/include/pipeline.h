@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_types.h"
+#include "types.h"
 
 #include <vector>
 
@@ -33,6 +33,9 @@ namespace halo
 
 		// control how th pipeline goes about blending into some given attachment.
 		VkPipelineColorBlendAttachmentState m_color_blend_state_attachment;
+
+		// hold information about depth and stencil states
+		VkPipelineDepthStencilStateCreateInfo m_depth_stencil_state_info;
 
 		// additional vulkan struct : info of the shader inputs (all types) of a pipeline.
 		VkPipelineLayout m_pipeline_layout;

@@ -1,4 +1,4 @@
-#include "../include/vk_initializers.h"
+#include "../include/initializers.h"
 
 namespace halo::init
 {
@@ -102,7 +102,10 @@ namespace halo::init
 	VkPipelineColorBlendAttachmentState create_color_blend_state()
 	{
 		VkPipelineColorBlendAttachmentState attachment_state = {};
-		attachment_state.colorWriteMask = VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT;
+
+		// set color write mask to RGBA
+		attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
+			VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		attachment_state.blendEnable = VK_FALSE;
 
 		return attachment_state;
@@ -119,6 +122,71 @@ namespace halo::init
 		create_info.pSetLayouts = nullptr;
 		create_info.pPushConstantRanges = nullptr;
 		create_info.pushConstantRangeCount = 0;
+
+		return create_info;
+	}
+
+	VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state()
+	{
+		VkPipelineDepthStencilStateCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		create_info.pNext = nullptr;
+		
+		create_info.depthTestEnable = VK_TRUE;
+		create_info.depthWriteEnable = VK_TRUE;
+		create_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		create_info.depthBoundsTestEnable = VK_FALSE;
+		create_info.minDepthBounds = 0.0f;
+		create_info.maxDepthBounds = 1.0f;
+		create_info.stencilTestEnable = VK_FALSE;
+
+		return create_info;
+	}
+
+	VkImageCreateInfo create_image_info(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
+	{
+		VkImageCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		create_info.pNext = nullptr;
+		create_info.flags = 0;
+
+		create_info.imageType = VK_IMAGE_TYPE_2D;
+		create_info.format = format;
+		create_info.extent = extent;
+		
+		create_info.mipLevels = 1;
+		create_info.arrayLayers = 1;
+
+		create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+
+		// VK_IMAGE_TILING_OPTIMAL specifies optimal tiling (since texels are laid out in a implementation dependent way, it cannot be read from CPU).
+		create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		
+		create_info.usage = usage;
+		
+		//create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		return create_info;
+	}
+
+	VkImageViewCreateInfo create_image_view_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags)
+	{
+		VkImageViewCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		create_info.pNext = nullptr;
+
+		create_info.format = format;
+		create_info.image = image;
+		create_info.flags = 0;
+
+		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+		//subresourceRange holds the information about where the image points to. 
+		create_info.subresourceRange.baseArrayLayer = 0;
+		create_info.subresourceRange.baseMipLevel = 0;
+		create_info.subresourceRange.levelCount = 1;
+		create_info.subresourceRange.layerCount = 1;
+		create_info.subresourceRange.aspectMask = aspect_flags;
 
 		return create_info;
 	}

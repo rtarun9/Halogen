@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_types.h"
+#include "types.h"
 
 namespace halo::init
 {
@@ -18,7 +18,12 @@ namespace halo::init
 	VkPipelineRasterizationStateCreateInfo create_rasterizer_state();
 	VkPipelineMultisampleStateCreateInfo create_multisampling_info();
 	VkPipelineColorBlendAttachmentState create_color_blend_state();
+	VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state();
 
 	// pipeline layout : information of shader inputs
 	VkPipelineLayoutCreateInfo create_pipeline_layout();
+	
+	// image related helper functions
+	VkImageCreateInfo create_image_info(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage);
+	VkImageViewCreateInfo create_image_view_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags);
 }

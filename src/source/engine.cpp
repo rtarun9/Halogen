@@ -1,8 +1,8 @@
 #include "../include/engine.h"
 
-#include "../include/vk_types.h"
-#include "../include/vk_initializers.h"
-#include "../include/vk_pipeline.h"
+#include "../include/types.h"
+#include "../include/initializers.h"
+#include "../include/pipeline.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -21,7 +21,7 @@
 #define VK_CHECK(x) {VkResult res = x; if (res) {std::cout << "Vulkan Error : " << res << '\n'; exit(EXIT_FAILURE);}}
 
 // random variables for testing
-int selected_pipeline = 0;
+int g_selected_pipeline = 0;
 
 namespace halo
 {
@@ -76,11 +76,11 @@ namespace halo
 				const Uint8 *keyboard_state = SDL_GetKeyboardState(nullptr);
 				if (keyboard_state[SDL_SCANCODE_R])
 				{
-					selected_pipeline = 1;
+					g_selected_pipeline = 1;
 				}
 				else if (keyboard_state[SDL_SCANCODE_F])
 				{
-					selected_pipeline = 0;
+					g_selected_pipeline = 0;
 				}
 
 				if (keyboard_state[SDL_SCANCODE_ESCAPE])
@@ -116,13 +116,21 @@ namespace halo
 		
 		VkClearValue clear_value = {};
 		clear_value.color = {{abs(cos(m_frame_number / 120.0f)), 0.0f, abs(sin(m_frame_number / 120.0f))}};
-		
+		clear_value.color = {{0.0f, 0.0f, 1.0f}};
+
+		VkClearValue depth_clear_value = {};
+		depth_clear_value.depthStencil.depth = 1.0f;
+
+		VkClearValue clear_values[2] = {clear_value, depth_clear_value};
+
 		// start renderpass
 		VkRenderPassBeginInfo renderpass_begin_info = {};
 		renderpass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderpass_begin_info.pNext = nullptr;
-		renderpass_begin_info.clearValueCount = 1;
-		renderpass_begin_info.pClearValues = &clear_value;
+
+		renderpass_begin_info.clearValueCount = 2;
+		renderpass_begin_info.pClearValues = &clear_values[0];
+
 		renderpass_begin_info.framebuffer = m_framebuffers[swapchain_image_index];
 		renderpass_begin_info.renderArea.extent = m_window_extent;
 		renderpass_begin_info.renderArea.offset = {0, 0};
@@ -130,7 +138,7 @@ namespace halo
 
 		vkCmdBeginRenderPass(m_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		/*if (selected_pipeline == 0)
+		/*if (g_selected_pipeline == 0)
 		{
 			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
 		}
@@ -143,21 +151,24 @@ namespace halo
 		
 		// bind vertex buffer with offset 0
 		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_triangle_mesh.m_allocated_buffer.m_buffer, &offset);
+		vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_monkey_mesh.m_allocated_buffer.m_buffer, &offset);
 
 		// test out push constants
 		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)m_window_width / m_window_height, 0.1f, 100.0f);
 	
+		// in vulkan the +y is facing down. thats why projection[1][1] is -1.
 		projection[1][1] *= -1;
 
-		glm::mat4 model_mat = glm::rotate(glm::mat4(1.0f), glm::radians(m_frame_number * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
+		model_mat = glm::rotate(model_mat, glm::radians(m_frame_number * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		PushConstants push_constants;
 		push_constants.m_transform_mat = projection * view * model_mat;
 
+		// push constants are inlayed onto a command buffer.
 		vkCmdPushConstants(m_command_buffer, m_mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
-		vkCmdDraw(m_command_buffer, m_triangle_mesh.m_vertices.size(), 1, 0, 0);
+		vkCmdDraw(m_command_buffer, static_cast<uint32_t>(m_monkey_mesh.m_vertices.size()), 1, 0, 0);
 
 		vkCmdEndRenderPass(m_command_buffer);
 
@@ -274,6 +285,28 @@ namespace halo
 		m_swapchain_image_format = vkb_swapchain.image_format;
 
 		m_deletors.push_function([=](){vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);});
+		
+		VkExtent3D depth_image_extent = {};
+		depth_image_extent.depth = 1;
+		depth_image_extent.width = m_window_extent.width;
+		depth_image_extent.height = m_window_extent.height;
+
+		// 32 bit depth format (24 for depth, 8 for stencil)
+		m_depth_format = VK_FORMAT_D32_SFLOAT;
+
+		VkImageCreateInfo depth_image_create_info = init::create_image_info(m_depth_format, depth_image_extent, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+		VmaAllocationCreateInfo depth_image_allocation_info = {};
+		depth_image_allocation_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		depth_image_allocation_info.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		vmaCreateImage(m_vma_allocator, &depth_image_create_info, &depth_image_allocation_info, &m_depth_buffer.m_image, &m_depth_buffer.m_allocation_data, nullptr);
+
+		VkImageViewCreateInfo depth_image_view_create_info = init::create_image_view_info(m_depth_format, m_depth_buffer.m_image, VK_IMAGE_ASPECT_DEPTH_BIT);
+		VK_CHECK(vkCreateImageView(m_device, &depth_image_view_create_info, nullptr, &m_depth_image_view));
+
+		m_deletors.push_function([=](){vkDestroyImageView(m_device, m_depth_image_view, nullptr);});
+		m_deletors.push_function([=](){vmaDestroyImage(m_vma_allocator, m_depth_buffer.m_image, m_depth_buffer.m_allocation_data);});
 	}
 
 	void Engine::initialize_command_objects()
@@ -314,16 +347,39 @@ namespace halo
 		color_attachment_ref.attachment = 0;
 		color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		// create depth attachment
+		VkAttachmentDescription depth_attachment_desc = {};
+		depth_attachment_desc.flags = 0;
+		depth_attachment_desc.format = m_depth_format;
+		depth_attachment_desc.samples = VK_SAMPLE_COUNT_1_BIT;
+
+		depth_attachment_desc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment_desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+		depth_attachment_desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth_attachment_desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+						
+		depth_attachment_desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depth_attachment_desc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// attachment reference for depth attachment
+		VkAttachmentReference depth_attachment_ref = {};
+		depth_attachment_ref.attachment = 1;
+		depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 		VkSubpassDescription subpass_desc = {};
 		subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass_desc.colorAttachmentCount = 1;
 		subpass_desc.pColorAttachments = &color_attachment_ref;
+		subpass_desc.pDepthStencilAttachment = &depth_attachment_ref;
 		
+		VkAttachmentDescription attachments[2] = {color_attachment_desc, depth_attachment_desc};
+
 		VkRenderPassCreateInfo renderpass_create_info = {};
 		renderpass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderpass_create_info.pNext = nullptr;
-		renderpass_create_info.attachmentCount = 1;
-		renderpass_create_info.pAttachments = &color_attachment_desc;
+		renderpass_create_info.attachmentCount = 2;
+		renderpass_create_info.pAttachments = &attachments[0];
 		renderpass_create_info.subpassCount = 1;
 		renderpass_create_info.pSubpasses = &subpass_desc;
 		
@@ -339,8 +395,6 @@ namespace halo
 		framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebuffer_create_info.pNext = nullptr;
 
-		framebuffer_create_info.attachmentCount = 1;
-
 		framebuffer_create_info.width = m_window_extent.width;
 		framebuffer_create_info.height = m_window_extent.height;
 		framebuffer_create_info.layers = 1;
@@ -351,7 +405,11 @@ namespace halo
 
 		for (int i = 0; i < m_framebuffers.size(); i++)
 		{
-			framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
+			VkImageView frame_buffer_attachments[2] = {m_swapchain_image_views[i], m_depth_image_view};
+
+			framebuffer_create_info.pAttachments = frame_buffer_attachments;
+			framebuffer_create_info.attachmentCount = 2;
+
 			VK_CHECK(vkCreateFramebuffer(m_device, &framebuffer_create_info, nullptr, &m_framebuffers[i]));
 			m_deletors.push_function([=](){vkDestroyFramebuffer(m_device, m_framebuffers[i], nullptr);});
 			m_deletors.push_function([=](){vkDestroyImageView(m_device, m_swapchain_image_views[i], nullptr);});
@@ -383,6 +441,7 @@ namespace halo
 
 	void Engine::initialize_pipeline()
 	{
+		// setup pipeline for basic triangle (noo push constants or buffers)
 		VkShaderModule simple_triangle_vertex_module;
 		load_shaders("../shaders/simple_triangle.vert.spv", simple_triangle_vertex_module);
 
@@ -409,7 +468,7 @@ namespace halo
 		pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
 		pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
 		pipeline_builder.m_viewport.maxDepth = 1.0f;
-		pipeline_builder.m_viewport.minDepth = 1.0f;
+		pipeline_builder.m_viewport.minDepth = 0.0f;
 
 		pipeline_builder.m_scissor.offset = {0, 0};
 		pipeline_builder.m_scissor.extent = m_window_extent;
@@ -419,6 +478,8 @@ namespace halo
 		pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
 
 		pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
+
+		pipeline_builder.m_depth_stencil_state_info = init::create_depth_stencil_state();
 
 		pipeline_builder.m_pipeline_layout = m_triangle_pipeline_layout;
 
@@ -458,10 +519,10 @@ namespace halo
 
 		VertexInputLayoutDescription vertex_input_layout_desc = Vertex::get_vertex_input_layout_description();
 
-		pipeline_builder.m_vertex_input_info.vertexBindingDescriptionCount = vertex_input_layout_desc.m_bindings.size();
+		pipeline_builder.m_vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_layout_desc.m_bindings.size());
 		pipeline_builder.m_vertex_input_info.pVertexBindingDescriptions = vertex_input_layout_desc.m_bindings.data();
 
-		pipeline_builder.m_vertex_input_info.vertexAttributeDescriptionCount = vertex_input_layout_desc.m_attributes.size();
+		pipeline_builder.m_vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_layout_desc.m_attributes.size());
 		pipeline_builder.m_vertex_input_info.pVertexAttributeDescriptions = vertex_input_layout_desc.m_attributes.data();
 
 		// set up pipeline layout (now with push constants)
@@ -541,9 +602,13 @@ namespace halo
 		m_triangle_mesh.m_vertices[1].m_color = {0.0f, 0.0f, 1.0f};
 		m_triangle_mesh.m_vertices[2].m_color = {1.0f, 0.0f, 0.0f};
 
+		m_monkey_mesh.load_obj_file("../assets/monkey_smooth.obj");
+
+		upload_meshes(m_monkey_mesh);
 		upload_meshes(m_triangle_mesh);
 	}
 
+	// send data over to GPU accessible region
 	void Engine::upload_meshes(Mesh& mesh)
 	{
 		// Allocate and create vertex buffer

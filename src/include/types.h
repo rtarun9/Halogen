@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vk_mem_alloc.h>
+
 #include <vector>
 #include <functional>
 
@@ -29,4 +31,19 @@ namespace halo
 			deletors.clear();
 		}
 	};
+
+	// struct for the buffer allocated + some information like where it has been allocated, heap type, and VMA state.
+	struct AllocatedBuffer
+	{
+		VkBuffer m_buffer;
+		VmaAllocation m_allocation_data;
+	};
+
+	// struct for image allocated
+	struct AllocatedImage
+	{
+		VkImage m_image;
+		VmaAllocation m_allocation_data;
+	};
+
 }

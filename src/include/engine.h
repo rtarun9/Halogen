@@ -1,9 +1,10 @@
 #pragma once
 
-#include "vk_types.h"
-#include "vk_mesh.h"
+#include "types.h"
+#include "mesh.h"
 
 #include <vk_mem_alloc.h>
+
 #include <vector>
 
 struct SDL_Window;
@@ -86,14 +87,21 @@ namespace halo
 
 		VkPipelineLayout m_triangle_pipeline_layout;
 
+		// depth buffer variables
+		AllocatedImage m_depth_buffer;
+		VkImageView m_depth_image_view;
+		VkFormat m_depth_format;
+
 		// utility / helper members
 		DeletionList m_deletors;
 
+		// objects for the main scene
 		VmaAllocator m_vma_allocator;
 
 		VkPipeline m_triangle_mesh_pipeline;
 		VkPipelineLayout m_mesh_pipeline_layout;
 
 		Mesh m_triangle_mesh;
+		Mesh m_monkey_mesh;
 	};
 }

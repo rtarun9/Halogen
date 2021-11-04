@@ -1,8 +1,6 @@
 #pragma once
 
-#include "vk_types.h"
-
-#include <vk_mem_alloc.h>
+#include "types.h"
 
 #include <glm/glm.hpp>
 
@@ -18,12 +16,6 @@ namespace halo
 		std::vector<VkVertexInputAttributeDescription> m_attributes;
 	};
 
-	struct AllocatedBuffer
-	{
-		VkBuffer m_buffer;
-		VmaAllocation m_allocation_data;
-	};
-
 	struct Vertex
 	{
 		glm::vec3 m_position;
@@ -37,6 +29,8 @@ namespace halo
 	{
 		std::vector<Vertex> m_vertices;
 		AllocatedBuffer m_allocated_buffer;
+
+		void load_obj_file(const char *file_path);
 	};
 
 	struct PushConstants
