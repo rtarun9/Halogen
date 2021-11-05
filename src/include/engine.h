@@ -6,6 +6,8 @@
 #include <vk_mem_alloc.h>
 
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 struct SDL_Window;
 struct halo::DeletionList;
@@ -13,10 +15,17 @@ struct halo::AllocatedBuffer;
 
 namespace halo
 {
+	struct Config
+	{
+		float m_window_width;
+		float m_window_height;
+		std::string m_window_name;
+	};
+
 	class Engine
 	{
 	public:
-		Engine();
+		Engine(const Config& config);
 
 		void initialize();
 		void run();
@@ -42,15 +51,26 @@ namespace halo
 
 		void upload_meshes(Mesh& mesh);
 
+		void initialize_scene();
+
+		void create_material(const std::string& material_name, VkPipeline pipeline, VkPipelineLayout pipeline_layout);
+
+		[[nodiscard]]
+		Material* get_material(const std::string& material_name);
+
+		[[nodiscard]]
+		Mesh* get_mesh(const std::string& mesh_name);
+
+		void draw_objects(VkCommandBuffer command_buffer, GameObject* game_object, int game_object_count);
+
 	private:
 		bool m_is_initialized{false};
 		int m_frame_number{0};
 
-		int m_window_width{1080};
-		int m_window_height{720};
+		Config m_config;
 
 		SDL_Window *m_window{nullptr};
-		VkExtent2D m_window_extent{static_cast<uint32_t>(m_window_width), static_cast<uint32_t>(m_window_height)};
+		VkExtent2D m_window_extent;
 		
 		// Main vulkan handles
 		VkInstance m_instance;
@@ -98,10 +118,16 @@ namespace halo
 		// objects for the main scene
 		VmaAllocator m_vma_allocator;
 
-		VkPipeline m_triangle_mesh_pipeline;
-		VkPipelineLayout m_mesh_pipeline_layout;
+		VkPipeline m_default_pipeline;
+		VkPipelineLayout m_default_pipeline_layout;
 
 		Mesh m_triangle_mesh;
 		Mesh m_monkey_mesh;
+
+		// for the game objects
+		std::vector<GameObject> m_game_objects;
+
+		std::unordered_map<std::string, Material> m_materials;
+		std::unordered_map<std::string, Mesh> m_meshes;
 	};
 }

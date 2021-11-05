@@ -1,14 +1,17 @@
 #pragma once
 
+#include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+
+#include <glm/glm.hpp>
 
 #include <vector>
 #include <functional>
 
-#include <vulkan/vulkan.h>
-
 namespace halo
 {
+	struct Mesh;
+
 	struct DeletionList
 	{
 		std::vector<std::function<void()>> deletors;
@@ -44,6 +47,21 @@ namespace halo
 	{
 		VkImage m_image;
 		VmaAllocation m_allocation_data;
+	};
+
+	// struct for game objects :  
+
+	struct Material
+	{
+		VkPipeline m_pipeline;
+		VkPipelineLayout m_pipeline_layout;
+	};
+
+	struct GameObject
+	{
+		Mesh *m_mesh;
+		Material *m_material;
+		glm::mat4 m_mesh_transform;
 	};
 
 }

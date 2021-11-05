@@ -22,6 +22,7 @@ namespace halo
 		glm::vec3 m_normal;
 		glm::vec3 m_color;
 
+		[[nodiscard]]
 		static VertexInputLayoutDescription get_vertex_input_layout_description();
 	};
 

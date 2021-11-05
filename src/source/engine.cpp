@@ -4,12 +4,12 @@
 #include "../include/initializers.h"
 #include "../include/pipeline.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <VkBootstrap.h>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
+
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -20,13 +20,11 @@
 #define ONE_SECOND 1000000000
 #define VK_CHECK(x) {VkResult res = x; if (res) {std::cout << "Vulkan Error : " << res << '\n'; exit(EXIT_FAILURE);}}
 
-// random variables for testing
-int g_selected_pipeline = 0;
-
 namespace halo
 {
-	Engine::Engine()
+	Engine::Engine(const Config& config): m_config(config)
 	{
+		m_window_extent = {static_cast<uint32_t>(m_config.m_window_width), static_cast<uint32_t>(m_config.m_window_height)};
 	}
 
 	void Engine::initialize()
@@ -39,7 +37,7 @@ namespace halo
 
 		SDL_WindowFlags window_flags = static_cast<SDL_WindowFlags>(SDL_WindowFlags::SDL_WINDOW_VULKAN | SDL_WindowFlags::SDL_WINDOW_SHOWN);
 
-		m_window = SDL_CreateWindow("Halogen", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, m_window_extent.width, m_window_extent.height, window_flags);
+		m_window = SDL_CreateWindow(m_config.m_window_name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, m_window_extent.width, m_window_extent.height, window_flags);
 		if (m_window == nullptr)
 		{
 			std::cout << "Failed to create window";
@@ -55,6 +53,8 @@ namespace halo
 		initialize_pipeline();
 
 		load_meshes();
+
+		initialize_scene();
 
 		m_is_initialized = true;
 	}
@@ -74,15 +74,6 @@ namespace halo
 				}
 
 				const Uint8 *keyboard_state = SDL_GetKeyboardState(nullptr);
-				if (keyboard_state[SDL_SCANCODE_R])
-				{
-					g_selected_pipeline = 1;
-				}
-				else if (keyboard_state[SDL_SCANCODE_F])
-				{
-					g_selected_pipeline = 0;
-				}
-
 				if (keyboard_state[SDL_SCANCODE_ESCAPE])
 				{
 					quit = true;
@@ -137,38 +128,8 @@ namespace halo
 		renderpass_begin_info.renderPass = m_renderpass;
 
 		vkCmdBeginRenderPass(m_command_buffer, &renderpass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-		/*if (g_selected_pipeline == 0)
-		{
-			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_pipeline);
-		}
-		else
-		{
-			vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_inverted_triangle_pipeline);
-		}*/
-
-		vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_triangle_mesh_pipeline);
 		
-		// bind vertex buffer with offset 0
-		VkDeviceSize offset = 0;
-		vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &m_monkey_mesh.m_allocated_buffer.m_buffer, &offset);
-
-		// test out push constants
-		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f));
-		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)m_window_width / m_window_height, 0.1f, 100.0f);
-	
-		// in vulkan the +y is facing down. thats why projection[1][1] is -1.
-		projection[1][1] *= -1;
-
-		glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
-		model_mat = glm::rotate(model_mat, glm::radians(m_frame_number * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		PushConstants push_constants;
-		push_constants.m_transform_mat = projection * view * model_mat;
-
-		// push constants are inlayed onto a command buffer.
-		vkCmdPushConstants(m_command_buffer, m_mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
-		vkCmdDraw(m_command_buffer, static_cast<uint32_t>(m_monkey_mesh.m_vertices.size()), 1, 0, 0);
+		draw_objects(m_command_buffer, m_game_objects.data(), static_cast<int>(m_game_objects.size()));
 
 		vkCmdEndRenderPass(m_command_buffer);
 
@@ -441,23 +402,11 @@ namespace halo
 
 	void Engine::initialize_pipeline()
 	{
-		// setup pipeline for basic triangle (noo push constants or buffers)
-		VkShaderModule simple_triangle_vertex_module;
-		load_shaders("../shaders/simple_triangle.vert.spv", simple_triangle_vertex_module);
-
-		VkShaderModule simple_triangle_fragment_module;
-		load_shaders("../shaders/simple_triangle.frag.spv", simple_triangle_fragment_module);
-		
 		VkPipelineLayoutCreateInfo pipeline_layout_info = init::create_pipeline_layout();
 		VK_CHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_info, nullptr, &m_triangle_pipeline_layout));
 		m_deletors.push_function([=](){vkDestroyPipelineLayout(m_device, m_triangle_pipeline_layout, nullptr);});
 
 		PipelineBuilder pipeline_builder;
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, simple_triangle_fragment_module));
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, simple_triangle_vertex_module));
-
-		m_deletors.push_function([=](){vkDestroyShaderModule(m_device, simple_triangle_fragment_module, nullptr);});
-		m_deletors.push_function([=](){vkDestroyShaderModule(m_device, simple_triangle_vertex_module, nullptr);});
 
 		pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
 
@@ -485,24 +434,6 @@ namespace halo
 
 		m_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
 		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);});
-
-		// setup for the inverted triangle pipeline
-		VkShaderModule inverted_vertex_shader;
-		VkShaderModule inverted_fragment_shader;
-
-		load_shaders("../shaders/simple_inverted_triangle.vert.spv", inverted_vertex_shader);
-		load_shaders("../shaders/simple_triangle.frag.spv", inverted_fragment_shader);
-
-		pipeline_builder.m_shader_stages.clear();
-
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_VERTEX_BIT, inverted_vertex_shader));
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(VK_SHADER_STAGE_FRAGMENT_BIT, inverted_fragment_shader));
-	
-		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_vertex_shader, nullptr); });
-		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, inverted_fragment_shader, nullptr); });
-
-		m_inverted_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
-		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_inverted_triangle_pipeline, nullptr);});
 
 		// setup triangle "mesh" pipeline
 
@@ -536,17 +467,19 @@ namespace halo
 		mesh_pipeline_layout_create_info.pPushConstantRanges = &push_constant;
 		mesh_pipeline_layout_create_info.pushConstantRangeCount = 1;
 
-		VK_CHECK(vkCreatePipelineLayout(m_device, &mesh_pipeline_layout_create_info, nullptr, &m_mesh_pipeline_layout));
+		VK_CHECK(vkCreatePipelineLayout(m_device, &mesh_pipeline_layout_create_info, nullptr, &m_default_pipeline_layout));
 
-		pipeline_builder.m_pipeline_layout = m_mesh_pipeline_layout;
+		pipeline_builder.m_pipeline_layout = m_default_pipeline_layout;
 
 		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, mesh_triangle_vert, nullptr); });
 		m_deletors.push_function([=]() {vkDestroyShaderModule(m_device, mesh_triangle_frag, nullptr); });
 
-		m_triangle_mesh_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
+		m_default_pipeline = pipeline_builder.create_pipeline(m_device, m_renderpass);
 
-		m_deletors.push_function([=](){vkDestroyPipelineLayout(m_device, m_mesh_pipeline_layout, nullptr);});
-		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_triangle_mesh_pipeline, nullptr);});
+		m_deletors.push_function([=](){vkDestroyPipelineLayout(m_device, m_default_pipeline_layout, nullptr);});
+		m_deletors.push_function([=](){vkDestroyPipeline(m_device, m_default_pipeline, nullptr);});
+	
+		create_material("default_material", m_default_pipeline, m_triangle_pipeline_layout);
 	}
 
 	void Engine::load_shaders(const char* file_path, VkShaderModule& shader_module)
@@ -606,6 +539,9 @@ namespace halo
 
 		upload_meshes(m_monkey_mesh);
 		upload_meshes(m_triangle_mesh);
+
+		m_meshes["monkey_mesh"] = m_monkey_mesh;
+		m_meshes["triangle_mesh"] = m_triangle_mesh;
 	}
 
 	// send data over to GPU accessible region
@@ -634,6 +570,99 @@ namespace halo
 		vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation_data);
 	}
 
+	void Engine::initialize_scene()
+	{
+		GameObject monkey;
+		monkey.m_material = get_material("default_material");
+		monkey.m_mesh = get_mesh("monkey_mesh");
+
+		monkey.m_mesh_transform = glm::mat4(1.0f);
+
+		m_game_objects.push_back(monkey);
+
+		GameObject triangle;
+		triangle.m_material = get_material("default_material");
+		triangle.m_mesh = get_mesh("triangle_mesh");
+
+		triangle.m_mesh_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f)) * glm::mat4(1.0f);
+
+		m_game_objects.push_back(triangle);
+	}
+
+	void Engine::create_material(const std::string& material_name, VkPipeline pipeline, VkPipelineLayout pipeline_layout)
+	{
+		Material new_material;
+		new_material.m_pipeline = pipeline;
+		new_material.m_pipeline_layout = pipeline_layout;
+
+		m_materials[material_name] = new_material;
+	}
+
+	Material* Engine::get_material(const std::string& material_name)
+	{
+		auto it = m_materials.find(material_name);
+		if (it == m_materials.end())
+		{
+			return nullptr;
+		}
+
+		return &(*it).second;
+	}
+
+	Mesh* Engine::get_mesh(const std::string& mesh_name)
+	{
+		auto it = m_meshes.find(mesh_name);
+		if (it == m_meshes.end())
+		{
+			return nullptr;
+		}
+
+		return &(*it).second;
+	}
+
+	void Engine::draw_objects(VkCommandBuffer command_buffer, GameObject* game_object, int game_object_count)
+	{
+		// test out push constants
+		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -6.0f));
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)m_config.m_window_width / m_config.m_window_height, 0.1f, 100.0f);
+
+		// in vulkan the +y is facing down. thats why projection[1][1] is -1.
+		projection[1][1] *= -1;
+
+		Mesh* last_mesh = nullptr;
+		Material* last_material = nullptr;
+
+		for (int i = 0; i < game_object_count; i++)
+		{
+			GameObject& current_object = m_game_objects[i];
+
+			if (current_object.m_material != last_material)
+			{
+				vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, current_object.m_material->m_pipeline);
+				last_material = current_object.m_material;
+			}
+
+			glm::mat4 model_mat = current_object.m_mesh_transform;
+			model_mat = glm::rotate(model_mat, glm::radians((float)m_frame_number), glm::vec3(1, 0, 0));
+
+			PushConstants push_constants;
+			push_constants.m_transform_mat = projection * view * model_mat;
+
+			// push constants are inlayed onto a command buffer.
+			vkCmdPushConstants(m_command_buffer, m_default_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push_constants);
+
+			if (current_object.m_mesh != last_mesh)
+			{
+				// bind vertex buffer with offset 0
+				VkDeviceSize offset = 0;
+				vkCmdBindVertexBuffers(m_command_buffer, 0, 1, &current_object.m_mesh->m_allocated_buffer.m_buffer, &offset);
+				last_mesh = current_object.m_mesh;
+
+			}
+
+			vkCmdDraw(command_buffer, static_cast<uint32_t>(current_object.m_mesh->m_vertices.size()), 1, 0, 0);
+		}
+	}
 
 	void Engine::clean()
 	{

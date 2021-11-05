@@ -35,11 +35,16 @@ namespace halo
 
 		pipeline_info.pVertexInputState = &m_vertex_input_info;
 		pipeline_info.pInputAssemblyState = &m_input_assembler;
+
 		pipeline_info.pViewportState = &viewport_state_info;
+
 		pipeline_info.pRasterizationState = &m_rasterizer_state_info;
+
 		pipeline_info.pMultisampleState = &m_multisample_state_info;
 		pipeline_info.pColorBlendState = &color_blend_state;
+
 		pipeline_info.pDepthStencilState = &m_depth_stencil_state_info;
+
 		pipeline_info.layout = m_pipeline_layout;
 		pipeline_info.renderPass = renderpass;
 		pipeline_info.subpass = 0;
@@ -49,8 +54,7 @@ namespace halo
 		VkResult res = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &new_pipeline);
 		if (res != VK_SUCCESS)
 		{
-			std::cout << "Failed to create pipeline";
-			exit(EXIT_FAILURE);
+			std::cerr << "Failed to create pipeline";
 
 			return VK_NULL_HANDLE;
 		}

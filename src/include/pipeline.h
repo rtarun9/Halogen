@@ -9,6 +9,7 @@ namespace halo
 	class PipelineBuilder
 	{
 	public:
+		[[nodiscard]]
 		VkPipeline create_pipeline(VkDevice device, VkRenderPass renderpass);
 
 	public:
