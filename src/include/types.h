@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vulkan/vulkan.hpp>
+
+// need to remove this after refactoring is done
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 

@@ -21,6 +21,9 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/shaders/*.comp"
 )
 
+target_precompile_headers(Halogen PRIVATE 
+    <vulkan/vulkan.hpp>)
+
 ## iterate each shader
 foreach(GLSL ${GLSL_SOURCE_FILES})
   get_filename_component(FILE_NAME ${GLSL} NAME)

@@ -21,7 +21,7 @@
 #include <vector>
 #include <system_error>
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 
 namespace vkb {
@@ -544,9 +544,16 @@ struct Swapchain {
 	// Returns a vector of VkImage handles to the swapchain.
 	detail::Result<std::vector<VkImage>> get_images ();
 
+	// Returns a vector of vk::Image handles (for vulkan.hpp)
+	std::vector<vk::Image> get_swapchain_images();
+
 	// Returns a vector of VkImageView's to the VkImage's of the swapchain.
 	// VkImageViews must be destroyed.
 	detail::Result<std::vector<VkImageView>> get_image_views ();
+
+	// Returns vector of vk::ImageViews (for vulkan.hpp)
+	std::vector<vk::ImageView> get_swapchain_image_views();
+
 	void destroy_image_views (std::vector<VkImageView> const& image_views);
 };
 
