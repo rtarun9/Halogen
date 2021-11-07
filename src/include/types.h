@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <functional>
+#include <iostream>
 
 namespace halo
 {

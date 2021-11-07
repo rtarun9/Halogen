@@ -1,8 +1,6 @@
 #include "../include/engine.h"
 
-#include "../include/types.h"
 #include "../include/initializers.h"
-#include "../include/pipeline.h"
 
 #include <VkBootstrap.h>
 
@@ -18,7 +16,6 @@
 #include <fstream>
 
 #define ONE_SECOND 1000000000
-#define VK_CHECK(x) {vk::Result res = x; if (res != vk::Result::eSuccess) {std::cout << "Vulkan Error : " << res << '\n'; exit(EXIT_FAILURE);}}
 
 namespace halo
 {
@@ -26,6 +23,14 @@ namespace halo
 	{
 		m_window_extent.setWidth(static_cast<uint32_t>(m_config.m_window_width));
 		m_window_extent.setHeight(static_cast<uint32_t>(m_config.m_window_height));
+
+		initialize();
+		run();
+	}
+
+	Engine::~Engine()
+	{
+		clean();
 	}
 
 	void Engine::initialize()
@@ -146,6 +151,10 @@ namespace halo
 		vma_allocator_create_info.instance = m_instance;
 		vma_allocator_create_info.physicalDevice = m_physical_device;
 		vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator);
+
+		// acquire queue and its index
+		m_graphics_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
+		m_graphics_queue_index = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
 	}
 
 	// uses vkbootstrap for swapchain initialization.
@@ -170,18 +179,70 @@ namespace halo
 
 	void Engine::initialize_command_objects()
 	{
-	
+		vk::CommandPoolCreateInfo command_pool_create_info = init::create_command_pool(m_graphics_queue_index);
+		m_main_command_pool = m_device.createCommandPool(command_pool_create_info);
+
+		vk::CommandBufferAllocateInfo command_buffer_allocate_info = init::create_command_buffer_allocate(m_main_command_pool);
+	 	m_command_buffer = m_device.allocateCommandBuffers(command_buffer_allocate_info)[0];
 	}
 
 	// renderpass stores the state of images rendering into, and the state needed to setup the target framebuffer for rendering.
 	void Engine::initialize_renderpass()
 	{
-	
+		// create the color attachment
+		vk::AttachmentDescription color_attachment_desc = {};
+		color_attachment_desc.format = m_swapchain_image_format;
+		color_attachment_desc.samples = vk::SampleCountFlagBits::e1;
+		color_attachment_desc.loadOp = vk::AttachmentLoadOp::eClear;
+		color_attachment_desc.storeOp = vk::AttachmentStoreOp::eStore;
+		color_attachment_desc.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+		color_attachment_desc.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+		color_attachment_desc.initialLayout = vk::ImageLayout::eUndefined;
+
+		// image should be ready for presentation
+		color_attachment_desc.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+
+		// reference to color attachment
+		vk::AttachmentReference color_attachment_ref = {};
+		color_attachment_ref.attachment = 0;
+		color_attachment_ref.layout = vk::ImageLayout::eColorAttachmentOptimal;
+
+		// Description for only subpass of renderpass
+		vk::SubpassDescription subpass_desc = {};
+		subpass_desc.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+		subpass_desc.colorAttachmentCount = 1;
+		subpass_desc.pColorAttachments = &color_attachment_ref;
+
+		vk::RenderPassCreateInfo render_pass_create_info = {};
+		render_pass_create_info.attachmentCount = 1;
+		render_pass_create_info.pAttachments = &color_attachment_desc;
+		render_pass_create_info.subpassCount = 1;
+		render_pass_create_info.pSubpasses = &subpass_desc;
+		
+		m_render_pass = m_device.createRenderPass(render_pass_create_info);
 	}
 	
+	// acts as a link between the attachments of the renderpassand the real images that they should render to.
+	// contains color, depth, stencil and other buffers.
 	void Engine::initialize_framebuffers()
 	{
-		
+		// since most properties will be shared, all fb create info structs will be made by modifying this template
+		vk::FramebufferCreateInfo framebuffer_create_info = {};
+		framebuffer_create_info.renderPass = m_render_pass;
+		framebuffer_create_info.width = m_window_extent.width;
+		framebuffer_create_info.height = m_window_extent.height;
+		framebuffer_create_info.layers = 1;
+
+		const size_t swapchain_image_count = m_swapchain_images.size();
+		m_framebuffers = std::vector<vk::Framebuffer>(swapchain_image_count);
+
+		for (size_t i = 0; i < m_swapchain_image_views.size(); i++)
+		{
+			framebuffer_create_info.attachmentCount = 1;
+			framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
+
+			m_framebuffers[i] = m_device.createFramebuffer(framebuffer_create_info);
+		}
 	}
 
 	void Engine::initialize_synchronization_objects()
@@ -236,10 +297,15 @@ namespace halo
 		if (m_is_initialized)
 		{
 			m_device.destroySwapchainKHR(m_swapchain);
+			
+			m_device.destroyRenderPass(m_render_pass);
 
-			for (vk::ImageView image_view : m_swapchain_image_views)
+			m_device.destroyCommandPool(m_main_command_pool);
+
+			for (size_t i = 0; i < m_swapchain_image_views.size(); i++)
 			{
-				m_device.destroyImageView(image_view);
+				m_device.destroyFramebuffer(m_framebuffers[i]);
+				m_device.destroyImageView(m_swapchain_image_views[i]);
 			}
 		}
 

@@ -2,28 +2,26 @@
 
 namespace halo::init
 {
-	VkCommandPoolCreateInfo create_command_pool(uint32_t queue_family_index, VkCommandPoolCreateFlags flags)
+	vk::CommandPoolCreateInfo create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags)
 	{
-		VkCommandPoolCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		create_info.pNext = nullptr;
+		vk::CommandPoolCreateInfo create_info = {};
 		create_info.flags = flags;
 		create_info.queueFamilyIndex = queue_family_index;
-		
+		create_info.pNext = nullptr;
+
 		return create_info;
 	}
 
-	VkCommandBufferAllocateInfo init::create_command_buffer_allocate(VkCommandPool command_pool, VkCommandBufferLevel level)
+	vk::CommandBufferAllocateInfo create_command_buffer_allocate(vk::CommandPool command_pool, vk::CommandBufferLevel level)
 	{
-		VkCommandBufferAllocateInfo allocate_info = {};
-		allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocate_info.pNext = nullptr;
-		allocate_info.commandBufferCount = 1;
+		vk::CommandBufferAllocateInfo allocate_info = {};
 		allocate_info.commandPool = command_pool;
 		allocate_info.level = level;
+		allocate_info.commandBufferCount = 1;
 
 		return allocate_info;
 	}
+
 
 	VkPipelineShaderStageCreateInfo create_shader_stage(VkShaderStageFlagBits shader_stage, VkShaderModule shader_module)
 	{

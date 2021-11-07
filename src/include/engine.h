@@ -26,6 +26,7 @@ namespace halo
 	{
 	public:
 		Engine(const Config& config);
+		~Engine();
 
 		void initialize();
 		void run();
@@ -88,6 +89,17 @@ namespace halo
 		vk::Format m_swapchain_image_format;
 		std::vector<vk::Image> m_swapchain_images;
 		std::vector<vk::ImageView> m_swapchain_image_views;
+
+		// Command objects
+		vk::CommandPool m_main_command_pool;
+		vk::CommandBuffer m_command_buffer;
+
+		// Queue's and index into queue (both presentation + graphics)
+		vk::Queue m_graphics_queue;
+		uint32_t m_graphics_queue_index;
+
+		vk::RenderPass m_render_pass;
+		std::vector<vk::Framebuffer> m_framebuffers;
 
 		// VMA allocator
 		VmaAllocator m_vma_allocator;
