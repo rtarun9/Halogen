@@ -1,6 +1,7 @@
 #include "../include/engine.h"
 
 #include "../include/initializers.h"
+#include "../include/pipeline.h"
 
 #include <VkBootstrap.h>
 
@@ -79,8 +80,85 @@ namespace halo
 
 	void Engine::render()
 	{
+		// wait until GPU has rendered the last frame
+		m_device.waitForFences(m_render_fence, true, ONE_SECOND);
+		m_device.resetFences(m_render_fence);
+
+		// presentation semaphore will be signalled when swapchain image is acquired.
+		vk::ResultValue<uint32_t> swapchain_image_index = m_device.acquireNextImageKHR(m_swapchain, ONE_SECOND, m_presentation_semaphore, nullptr);
+
+		// begin rendering commands
+		m_command_buffer.reset();
 		
-	}
+		vk::CommandBuffer command_buffer = m_command_buffer;
+
+		vk::CommandBufferBeginInfo command_buffer_begin_info = {};
+
+		// flags set to one time submit since it is being re recorded every frame
+		command_buffer_begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+		
+		command_buffer.begin(command_buffer_begin_info);
+	
+		vk::ClearColorValue clear_color;
+		clear_color.setFloat32({0.0f, 0.0f, (float)abs(sin(SDL_GetTicks() / 120.0f))});
+
+		vk::ClearValue clear_values = {clear_color};
+
+		// begin renderpass
+		vk::RenderPassBeginInfo render_pass_begin_info = {};
+		render_pass_begin_info.renderPass = m_render_pass;
+		render_pass_begin_info.renderArea.extent = m_window_extent;
+		render_pass_begin_info.renderArea.offset = vk::Offset2D{0, 0};
+		render_pass_begin_info.clearValueCount = 1;
+		render_pass_begin_info.pClearValues = &clear_values;
+		render_pass_begin_info.framebuffer = m_framebuffers[swapchain_image_index.value];
+
+		command_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+		
+		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_hardcoded_triangle_pipeline);
+		
+		command_buffer.draw(3, 1, 0, 0);
+
+		command_buffer.endRenderPass();
+
+		command_buffer.end();
+
+		// submit to GPU
+
+		// note : wait on presentation semaphore, since it is signaled when swapchain is ready
+		// note : signal render sempaphore, when rendering is finished.
+
+		vk::SubmitInfo submit_info = {};
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores = &m_presentation_semaphore;
+
+		submit_info.signalSemaphoreCount = 1;
+		submit_info.pSignalSemaphores = &m_render_sempaphore;
+
+		submit_info.commandBufferCount = 1;
+		submit_info.pCommandBuffers = &command_buffer;
+
+		vk::PipelineStageFlags dst_wait_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		submit_info.pWaitDstStageMask = &dst_wait_stage_mask;
+
+		// once all command buffers have completed thier execution, m_render_fence is signalled.
+		m_graphics_queue.submit(submit_info, m_render_fence);
+
+		// wait on render semaphore before presentation
+		// m_render_fence is not needed to be explicity set here since presentation waits on m_render_semaphore, and so does m_render_fence.
+		vk::PresentInfoKHR present_info = {};
+		present_info.pSwapchains = &m_swapchain;
+		present_info.swapchainCount = 1;
+
+		present_info.pWaitSemaphores = &m_render_sempaphore;
+		present_info.waitSemaphoreCount = 1;
+
+		present_info.pImageIndices = &swapchain_image_index.value;
+
+		m_graphics_queue.presentKHR(present_info);
+
+		m_frame_number++;
+	};
 
 	void Engine::initialize_platform_backend()
 	{
@@ -245,19 +323,81 @@ namespace halo
 		}
 	}
 
+	// sync objects : fence (GPU to CPU), semaphore (GPU to GPU)
 	void Engine::initialize_synchronization_objects()
 	{
-		
+		vk::FenceCreateInfo fence_create_info = init::create_fence();
+		m_render_fence = m_device.createFence(fence_create_info);
+
+		vk::SemaphoreCreateInfo semaphore_create_info = init::create_semaphore();
+		m_render_sempaphore = m_device.createSemaphore(semaphore_create_info);
+		m_presentation_semaphore = m_device.createSemaphore(semaphore_create_info);
 	}
 
 	void Engine::initialize_pipeline()
 	{
+		// create shader modules
+		vk::ShaderModule triangle_vert_module;
+		load_shaders("../shaders/simple_triangle.vert.spv", triangle_vert_module);
+
+		vk::ShaderModule triangle_frag_module;
+		load_shaders("../shaders/simple_triangle.frag.spv", triangle_frag_module);
+
+		PipelineBuilder pipeline_builder = {};
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eVertex, triangle_vert_module));
+		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eFragment, triangle_frag_module));
+
+		pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
+		pipeline_builder.m_input_assembler = init::create_input_assembler();
+
+		pipeline_builder.m_viewport.x = 0.0f;
+		pipeline_builder.m_viewport.y = 0.0f;
+		pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
+		pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
+		pipeline_builder.m_viewport.minDepth = 0.0f;
+		pipeline_builder.m_viewport.minDepth = 1.0f;
+
+		pipeline_builder.m_scissor.offset = vk::Offset2D{0, 0};
+		pipeline_builder.m_scissor.extent = m_window_extent;
+
+		pipeline_builder.m_rasterizer_state_info = init::create_rasterizer_state();
+		pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
+		pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
 		
+		m_hardcoded_triangle_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
+		pipeline_builder.m_pipeline_layout = m_hardcoded_triangle_layout;
+
+		m_hardcoded_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_render_pass);
 	}
 
-	void Engine::load_shaders(const char* file_path, VkShaderModule& shader_module)
+	void Engine::load_shaders(const char* file_path, vk::ShaderModule& shader_module)
 	{
-		
+		// std::ios::ate : file pointer at the end of file (easy to find file size) and std::ios::binary because of spirv.
+		std::ifstream file(file_path, std::ios::ate | std::ios::binary);
+
+		if (!file.is_open())
+		{
+			throw std::runtime_error(std::string("file " + std::string(file_path) + " not found"));
+		}
+
+		size_t file_size_bytes = static_cast<size_t>(file.tellg());
+
+		// spriv expects buffer to be uint32's
+		std::vector<uint32_t> buffer(file_size_bytes / sizeof(uint32_t));
+
+		file.seekg(0);
+
+		file.read((char*)buffer.data(), file_size_bytes);
+
+		file.close();
+
+		vk::ShaderModuleCreateInfo shader_module_create_info = {};
+		shader_module_create_info.codeSize = file_size_bytes;
+		shader_module_create_info.pCode = buffer.data();
+
+		shader_module = m_device.createShaderModule(shader_module_create_info);
+
+
 	}
 
 	void Engine::load_meshes()

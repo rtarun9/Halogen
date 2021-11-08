@@ -12,32 +12,42 @@ namespace halo::init
 	[[nodiscard]]
 	vk::CommandBufferAllocateInfo create_command_buffer_allocate(vk::CommandPool command_pool, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary);
 
+	// sync object helper functions
+	
+	// default flag : eSignaled (since for the first frame of renderloop, we wait until the fence is signalled).
+	[[nodiscard]]
+	vk::FenceCreateInfo create_fence(vk::FenceCreateFlags flags = vk::FenceCreateFlagBits::eSignaled);
+
+	// default flag : 0 (unused, preserved for future use)
+	[[nodiscard]]
+	vk::SemaphoreCreateInfo create_semaphore();
+
 	// pipeline related helper functinos
 
 	[[nodiscard]]
-	VkPipelineShaderStageCreateInfo create_shader_stage(VkShaderStageFlagBits shader_stage, VkShaderModule shader_module);
+	vk::PipelineShaderStageCreateInfo create_shader_stage(vk::ShaderStageFlagBits shader_stage, vk::ShaderModule shader_module);
 	
 	[[nodiscard]]
-	VkPipelineVertexInputStateCreateInfo create_vertex_input_state();
+	vk::PipelineVertexInputStateCreateInfo create_vertex_input_state();
 	
 	[[nodiscard]]
-	VkPipelineInputAssemblyStateCreateInfo create_input_assembler();
+	vk::PipelineInputAssemblyStateCreateInfo create_input_assembler(vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList);
 	
 	[[nodiscard]]
-	VkPipelineRasterizationStateCreateInfo create_rasterizer_state();
+	vk::PipelineRasterizationStateCreateInfo create_rasterizer_state();
 	
 	[[nodiscard]]
-	VkPipelineMultisampleStateCreateInfo create_multisampling_info();
+	vk::PipelineMultisampleStateCreateInfo create_multisampling_info();
 	
 	[[nodiscard]]
-	VkPipelineColorBlendAttachmentState create_color_blend_state();
+	vk::PipelineColorBlendAttachmentState create_color_blend_state();
 	
 	[[nodiscard]]
 	VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state();
 
 	// pipeline layout : information of shader inputs
 	[[nodiscard]]
-	VkPipelineLayoutCreateInfo create_pipeline_layout();
+	vk::PipelineLayoutCreateInfo create_pipeline_layout();
 	
 	// image related helper functions
 	[[nodiscard]]

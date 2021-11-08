@@ -22,13 +22,25 @@ namespace halo::init
 		return allocate_info;
 	}
 
-
-	VkPipelineShaderStageCreateInfo create_shader_stage(VkShaderStageFlagBits shader_stage, VkShaderModule shader_module)
+	vk::FenceCreateInfo create_fence(vk::FenceCreateFlags flags)
 	{
-		VkPipelineShaderStageCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		create_info.pNext = nullptr;
-		create_info.flags = 0;
+		vk::FenceCreateInfo create_info = {};
+		create_info.flags = flags;
+
+		return create_info;
+	}
+
+	vk::SemaphoreCreateInfo create_semaphore()
+	{
+		vk::SemaphoreCreateInfo create_info = {};
+
+		return create_info;
+	}
+
+	vk::PipelineShaderStageCreateInfo create_shader_stage(vk::ShaderStageFlagBits shader_stage, vk::ShaderModule shader_module)
+	{
+		vk::PipelineShaderStageCreateInfo create_info = {};
+		
 		create_info.stage = shader_stage;
 		create_info.module = shader_module;
 		create_info.pName = "main";
@@ -37,11 +49,9 @@ namespace halo::init
 		return create_info;
 	}
 
-	VkPipelineVertexInputStateCreateInfo create_vertex_input_state()
+	vk::PipelineVertexInputStateCreateInfo create_vertex_input_state()
 	{
-		VkPipelineVertexInputStateCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		create_info.pNext = nullptr;
+		vk::PipelineVertexInputStateCreateInfo  create_info = {};
 
 		create_info.vertexAttributeDescriptionCount = 0;
 		create_info.vertexBindingDescriptionCount = 0;
@@ -49,31 +59,28 @@ namespace halo::init
 		return create_info;
 	}
 
-	VkPipelineInputAssemblyStateCreateInfo create_input_assembler()
+	vk::PipelineInputAssemblyStateCreateInfo create_input_assembler(vk::PrimitiveTopology topology)
 	{
-		VkPipelineInputAssemblyStateCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		create_info.pNext = nullptr;
-		create_info.flags = 0;
-		create_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		vk::PipelineInputAssemblyStateCreateInfo create_info = {};
+		
+		create_info.topology = topology;
 		create_info.primitiveRestartEnable = VK_FALSE;
 		
 		return create_info;
 	}
 
-	VkPipelineRasterizationStateCreateInfo create_rasterizer_state()
+	vk::PipelineRasterizationStateCreateInfo create_rasterizer_state()
 	{
-		VkPipelineRasterizationStateCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		create_info.pNext = nullptr;
-		create_info.flags = 0;
-		create_info.depthClampEnable = VK_FALSE;
-		create_info.rasterizerDiscardEnable = VK_FALSE;
-		create_info.polygonMode = VK_POLYGON_MODE_FILL;
+		vk::PipelineRasterizationStateCreateInfo create_info = {};
+
+		create_info.depthClampEnable = false;
+
+		create_info.rasterizerDiscardEnable = false;
+		create_info.polygonMode = vk::PolygonMode::eFill;
 		create_info.lineWidth = 1.0f;
-		create_info.cullMode =  VK_CULL_MODE_NONE;
-		create_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		create_info.depthBiasEnable = VK_FALSE;
+		create_info.cullMode =  vk::CullModeFlagBits::eNone;
+		create_info.frontFace = vk::FrontFace::eClockwise;
+		create_info.depthBiasEnable = false;
 		create_info.depthBiasConstantFactor = 0.0f;
 		create_info.depthBiasClamp  = 0.0f;
 		create_info.depthBiasSlopeFactor = 0.0f;
@@ -81,41 +88,35 @@ namespace halo::init
 		return create_info;
 	}
 
-	VkPipelineMultisampleStateCreateInfo create_multisampling_info()
+	vk::PipelineMultisampleStateCreateInfo create_multisampling_info()
 	{
-		VkPipelineMultisampleStateCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		create_info.pNext = nullptr;
+		vk::PipelineMultisampleStateCreateInfo create_info = {};
 
-		create_info.sampleShadingEnable = VK_FALSE;
-		create_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		create_info.sampleShadingEnable = false;
+		create_info.rasterizationSamples = vk::SampleCountFlagBits::e1;
 		create_info.minSampleShading = 1.0f;
 		create_info.pSampleMask = nullptr;
-		create_info.alphaToCoverageEnable = VK_FALSE;
-		create_info.alphaToOneEnable = VK_FALSE;
+		create_info.alphaToCoverageEnable = false;
+		create_info.alphaToOneEnable = false;
 
 		return create_info;
 	}
 
-	VkPipelineColorBlendAttachmentState create_color_blend_state()
+	vk::PipelineColorBlendAttachmentState create_color_blend_state()
 	{
-		VkPipelineColorBlendAttachmentState attachment_state = {};
+		vk::PipelineColorBlendAttachmentState attachment_state = {};
 
 		// set color write mask to RGBA
-		attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
-			VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		attachment_state.blendEnable = VK_FALSE;
+		attachment_state.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+		attachment_state.blendEnable = false;
 
 		return attachment_state;
 	}
 
-	VkPipelineLayoutCreateInfo create_pipeline_layout()
+	vk::PipelineLayoutCreateInfo create_pipeline_layout()
 	{
-		VkPipelineLayoutCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		create_info.pNext = nullptr;
-
-		create_info.flags = 0;
+		vk::PipelineLayoutCreateInfo create_info = {};
+	
 		create_info.setLayoutCount = 0;
 		create_info.pSetLayouts = nullptr;
 		create_info.pPushConstantRanges = nullptr;

@@ -1,11 +1,9 @@
+
 #version 450
 
-layout (location = 0) in vec3 in_color;
+layout (location = 0) out vec4 frag_color;
 
-// declare output will be on location 0.
-layout (location = 0) out vec4 o_frag_color;
-
-void main()
+void main() 
 {
-	o_frag_color = vec4(in_color, 1.0f);
+	frag_color = vec4(1.0f, 0.0f, 0.5f, 1.0f);
 }

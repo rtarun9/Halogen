@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include "mesh.h"
 
 #include <vk_mem_alloc.h>
 
@@ -49,7 +48,7 @@ namespace halo
 		
 		void initialize_pipeline();
 
-		void load_shaders(const char *file_path, VkShaderModule& shader_module);
+		void load_shaders(const char *file_path, vk::ShaderModule& shader_module);
 		void load_meshes();
 
 		void upload_meshes(Mesh& mesh);
@@ -100,6 +99,16 @@ namespace halo
 
 		vk::RenderPass m_render_pass;
 		std::vector<vk::Framebuffer> m_framebuffers;
+
+		// sync objects
+		vk::Fence m_render_fence;
+
+		vk::Semaphore m_render_sempaphore;
+		vk::Semaphore m_presentation_semaphore;
+
+		// for rendering
+		vk::Pipeline m_hardcoded_triangle_pipeline;
+		vk::PipelineLayout m_hardcoded_triangle_layout;
 
 		// VMA allocator
 		VmaAllocator m_vma_allocator;

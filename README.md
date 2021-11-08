@@ -1,7 +1,7 @@
 # Halogen
 A simple and small graphics engine. This project uses SDL2 for windowing / input, and Vulkan for the graphics backend. 
 The purpose of making this engine is to : try out graphics programming concepts, learn more about GPU's, and improve my programming skills.
-Since this is not meant to be a full on "Graphics engine" and more of a test project for learning, the code will be very messy. Using vkguide.dev & vulkan.hpp.
+Since this is not meant to be a full on "Graphics engine" and more of a test project for learning, the code will be very messy. Following vkguide.dev & using vulkan.hpp.
 # Building the project
 You will need to manually set path to SDL, and have the Vulkan SDK (Version 1.1+) installed. glslangValidator should be available for shader compilation.
 
