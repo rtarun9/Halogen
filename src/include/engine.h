@@ -1,16 +1,11 @@
 #pragma once
 
 #include "types.h"
+#include "mesh.h"
 
 #include <vk_mem_alloc.h>
 
-#include <vector>
-#include <string>
-#include <unordered_map>
-
 struct SDL_Window;
-struct halo::DeletionList;
-struct halo::AllocatedBuffer;
 
 namespace halo
 {
@@ -97,20 +92,29 @@ namespace halo
 		vk::Queue m_graphics_queue;
 		uint32_t m_graphics_queue_index;
 
+		// Frambuffer, render pass and (todo : depth buffer)
 		vk::RenderPass m_render_pass;
 		std::vector<vk::Framebuffer> m_framebuffers;
 
 		// sync objects
 		vk::Fence m_render_fence;
 
-		vk::Semaphore m_render_sempaphore;
+		vk::Semaphore m_render_semaphore;
 		vk::Semaphore m_presentation_semaphore;
 
 		// for rendering
 		vk::Pipeline m_hardcoded_triangle_pipeline;
 		vk::PipelineLayout m_hardcoded_triangle_layout;
 
+		vk::Pipeline m_triangle_pipeline;
+		vk::PipelineLayout m_triangle_layout;
+
+		Mesh m_triangle_mesh;
+
 		// VMA allocator
 		VmaAllocator m_vma_allocator;
+
+		// for handling cleanup convineintly
+		DeletionList m_deletion_list;
 	};
 }

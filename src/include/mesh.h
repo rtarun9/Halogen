@@ -10,10 +10,10 @@ namespace halo
 	struct VertexInputLayoutDescription
 	{
 		// contains how data is binded, and its vertex rate
-		std::vector<VkVertexInputBindingDescription> m_bindings;
+		std::vector<vk::VertexInputBindingDescription> m_bindings;
 
 		// attributes contain info such as the location to which a particular piece of data is stored (accessed via layout (location = x) in vertex shader
-		std::vector<VkVertexInputAttributeDescription> m_attributes;
+		std::vector<vk::VertexInputAttributeDescription> m_attributes;
 	};
 
 	struct Vertex

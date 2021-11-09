@@ -17,7 +17,7 @@ namespace halo
 		// contains all shader stages (vertex, fragment, compute, etc)
 		std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stages;
 
-		// contains info of the vertex buffer and its formats (specify how data is laid out and how to interpret it).
+		// contains info of the vertex buffer and its formats (specify how data is laid out and how to interpret it). It's vulkan's VAO
 		vk::PipelineVertexInputStateCreateInfo m_vertex_input_info;
 		
 		// contains info of the topology to be used while drawing

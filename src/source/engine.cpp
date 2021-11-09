@@ -18,6 +18,20 @@
 
 #define ONE_SECOND 1000000000
 
+#define VK_CHECK(x)                                                    \
+do																	   \
+{																	   \
+	vk::Result res = x;												   \
+	if (res != vk::Result::eSuccess)								   \
+	{																   \
+		std::cerr << "Vulkan Error : " << res << std::endl;			   \
+	}																   \
+}																	   \
+while(0)															   \
+
+// macro for making push back's to deletion queue a bit more readable
+#define CREATE_LAMBDA_FUNCTION(function) ([=](){function;})
+
 namespace halo
 {
 	Engine::Engine(const Config& config): m_config(config)
@@ -81,7 +95,7 @@ namespace halo
 	void Engine::render()
 	{
 		// wait until GPU has rendered the last frame
-		m_device.waitForFences(m_render_fence, true, ONE_SECOND);
+		VK_CHECK(m_device.waitForFences(m_render_fence, true, ONE_SECOND));
 		m_device.resetFences(m_render_fence);
 
 		// presentation semaphore will be signalled when swapchain image is acquired.
@@ -115,8 +129,11 @@ namespace halo
 
 		command_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
 		
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_hardcoded_triangle_pipeline);
+		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_triangle_pipeline);
 		
+		vk::DeviceSize offset = 0;
+		command_buffer.bindVertexBuffers(0, m_triangle_mesh.m_allocated_buffer.m_buffer, offset);
+
 		command_buffer.draw(3, 1, 0, 0);
 
 		command_buffer.endRenderPass();
@@ -133,7 +150,7 @@ namespace halo
 		submit_info.pWaitSemaphores = &m_presentation_semaphore;
 
 		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &m_render_sempaphore;
+		submit_info.pSignalSemaphores = &m_render_semaphore;
 
 		submit_info.commandBufferCount = 1;
 		submit_info.pCommandBuffers = &command_buffer;
@@ -150,12 +167,12 @@ namespace halo
 		present_info.pSwapchains = &m_swapchain;
 		present_info.swapchainCount = 1;
 
-		present_info.pWaitSemaphores = &m_render_sempaphore;
+		present_info.pWaitSemaphores = &m_render_semaphore;
 		present_info.waitSemaphoreCount = 1;
 
 		present_info.pImageIndices = &swapchain_image_index.value;
 
-		m_graphics_queue.presentKHR(present_info);
+		VK_CHECK(m_graphics_queue.presentKHR(present_info));
 
 		m_frame_number++;
 	};
@@ -259,6 +276,7 @@ namespace halo
 	{
 		vk::CommandPoolCreateInfo command_pool_create_info = init::create_command_pool(m_graphics_queue_index);
 		m_main_command_pool = m_device.createCommandPool(command_pool_create_info);
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyCommandPool(m_main_command_pool)));
 
 		vk::CommandBufferAllocateInfo command_buffer_allocate_info = init::create_command_buffer_allocate(m_main_command_pool);
 	 	m_command_buffer = m_device.allocateCommandBuffers(command_buffer_allocate_info)[0];
@@ -298,6 +316,7 @@ namespace halo
 		render_pass_create_info.pSubpasses = &subpass_desc;
 		
 		m_render_pass = m_device.createRenderPass(render_pass_create_info);
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyRenderPass(m_render_pass)));
 	}
 	
 	// acts as a link between the attachments of the renderpassand the real images that they should render to.
@@ -320,6 +339,8 @@ namespace halo
 			framebuffer_create_info.pAttachments = &m_swapchain_image_views[i];
 
 			m_framebuffers[i] = m_device.createFramebuffer(framebuffer_create_info);
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyFramebuffer(m_framebuffers[i])));
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyImageView(m_swapchain_image_views[i])));
 		}
 	}
 
@@ -328,46 +349,110 @@ namespace halo
 	{
 		vk::FenceCreateInfo fence_create_info = init::create_fence();
 		m_render_fence = m_device.createFence(fence_create_info);
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyFence(m_render_fence)));
 
 		vk::SemaphoreCreateInfo semaphore_create_info = init::create_semaphore();
-		m_render_sempaphore = m_device.createSemaphore(semaphore_create_info);
+		m_render_semaphore = m_device.createSemaphore(semaphore_create_info);
 		m_presentation_semaphore = m_device.createSemaphore(semaphore_create_info);
+		
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroySemaphore(m_render_semaphore)));
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroySemaphore(m_presentation_semaphore)));
 	}
 
 	void Engine::initialize_pipeline()
 	{
-		// create shader modules
-		vk::ShaderModule triangle_vert_module;
-		load_shaders("../shaders/simple_triangle.vert.spv", triangle_vert_module);
+		// for hardcoded triangle
+		{
+			// create shader modules
+			vk::ShaderModule hardcoded_triangle_vert_module;
+			load_shaders("../shaders/hardcoded_simple_triangle.vert.spv", hardcoded_triangle_vert_module);
 
-		vk::ShaderModule triangle_frag_module;
-		load_shaders("../shaders/simple_triangle.frag.spv", triangle_frag_module);
+			vk::ShaderModule hardcoded_triangle_frag_module;
+			load_shaders("../shaders/hardcoded_simple_triangle.frag.spv", hardcoded_triangle_frag_module);
 
-		PipelineBuilder pipeline_builder = {};
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eVertex, triangle_vert_module));
-		pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eFragment, triangle_frag_module));
+			PipelineBuilder pipeline_builder = {};
+			pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eVertex, hardcoded_triangle_vert_module));
+			pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eFragment, hardcoded_triangle_frag_module));
 
-		pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
-		pipeline_builder.m_input_assembler = init::create_input_assembler();
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyShaderModule(hardcoded_triangle_vert_module)));
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyShaderModule(hardcoded_triangle_frag_module)));
 
-		pipeline_builder.m_viewport.x = 0.0f;
-		pipeline_builder.m_viewport.y = 0.0f;
-		pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
-		pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
-		pipeline_builder.m_viewport.minDepth = 0.0f;
-		pipeline_builder.m_viewport.minDepth = 1.0f;
+			pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
+			pipeline_builder.m_input_assembler = init::create_input_assembler();
 
-		pipeline_builder.m_scissor.offset = vk::Offset2D{0, 0};
-		pipeline_builder.m_scissor.extent = m_window_extent;
+			pipeline_builder.m_viewport.x = 0.0f;
+			pipeline_builder.m_viewport.y = 0.0f;
+			pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
+			pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
+			pipeline_builder.m_viewport.minDepth = 0.0f;
+			pipeline_builder.m_viewport.minDepth = 1.0f;
 
-		pipeline_builder.m_rasterizer_state_info = init::create_rasterizer_state();
-		pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
-		pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
-		
-		m_hardcoded_triangle_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
-		pipeline_builder.m_pipeline_layout = m_hardcoded_triangle_layout;
+			pipeline_builder.m_scissor.offset = vk::Offset2D{0, 0};
+			pipeline_builder.m_scissor.extent = m_window_extent;
 
-		m_hardcoded_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_render_pass);
+			pipeline_builder.m_rasterizer_state_info = init::create_rasterizer_state();
+			pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
+			pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
+			
+			m_hardcoded_triangle_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipelineLayout(m_hardcoded_triangle_layout)));
+			
+			pipeline_builder.m_pipeline_layout = m_hardcoded_triangle_layout;
+
+			m_hardcoded_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_render_pass);
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipeline(m_hardcoded_triangle_pipeline)));
+		}
+
+		// creation for triangle pipeline and layout (with vertex buffer)
+		{
+			// create shader modules
+			vk::ShaderModule triangle_vert_module;
+			load_shaders("../shaders/default_mesh.vert.spv", triangle_vert_module);
+
+			vk::ShaderModule triangle_frag_module;
+			load_shaders("../shaders/default_mesh.frag.spv", triangle_frag_module);
+
+			PipelineBuilder pipeline_builder = {};
+			pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eVertex, triangle_vert_module));
+			pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eFragment, triangle_frag_module));
+
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyShaderModule(triangle_vert_module)));
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyShaderModule(triangle_frag_module)));
+
+			pipeline_builder.m_vertex_input_info = init::create_vertex_input_state();
+
+			VertexInputLayoutDescription vertex_input_layout_description = Vertex::get_vertex_input_layout_description();
+
+			pipeline_builder.m_vertex_input_info.vertexBindingDescriptionCount = vertex_input_layout_description.m_bindings.size();
+			pipeline_builder.m_vertex_input_info.pVertexBindingDescriptions = vertex_input_layout_description.m_bindings.data();
+
+			pipeline_builder.m_vertex_input_info.vertexAttributeDescriptionCount = vertex_input_layout_description.m_attributes.size();
+			pipeline_builder.m_vertex_input_info.pVertexAttributeDescriptions = vertex_input_layout_description.m_attributes.data();
+
+			pipeline_builder.m_input_assembler = init::create_input_assembler();
+
+			pipeline_builder.m_viewport.x = 0.0f;
+			pipeline_builder.m_viewport.y = 0.0f;
+			pipeline_builder.m_viewport.width = static_cast<float>(m_window_extent.width);
+			pipeline_builder.m_viewport.height = static_cast<float>(m_window_extent.height);
+			pipeline_builder.m_viewport.minDepth = 0.0f;
+			pipeline_builder.m_viewport.minDepth = 1.0f;
+
+			pipeline_builder.m_scissor.offset = vk::Offset2D{ 0, 0 };
+			pipeline_builder.m_scissor.extent = m_window_extent;
+
+			pipeline_builder.m_rasterizer_state_info = init::create_rasterizer_state();
+			pipeline_builder.m_multisample_state_info = init::create_multisampling_info();
+			pipeline_builder.m_color_blend_state_attachment = init::create_color_blend_state();
+
+			m_triangle_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipelineLayout(m_triangle_layout)));
+
+			pipeline_builder.m_pipeline_layout = m_triangle_layout;
+
+			m_triangle_pipeline = pipeline_builder.create_pipeline(m_device, m_render_pass);
+			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipeline(m_triangle_pipeline)));
+		}
 	}
 
 	void Engine::load_shaders(const char* file_path, vk::ShaderModule& shader_module)
@@ -402,7 +487,46 @@ namespace halo
 
 	void Engine::load_meshes()
 	{
-		
+		m_triangle_mesh.m_vertices.resize(3);
+		m_triangle_mesh.m_vertices[0].m_position = {-0.5f, -0.5f, 0.0f};
+		m_triangle_mesh.m_vertices[0].m_color = {1.0f, 0.0f, 0.0f};
+
+		m_triangle_mesh.m_vertices[1].m_position = {0.5f, -0.5f, 0.0f};
+		m_triangle_mesh.m_vertices[1].m_color = {0.0f, 1.0f, 0.0f};
+
+		m_triangle_mesh.m_vertices[2].m_position = {0.0f, 0.5f, 0.0f};
+		m_triangle_mesh.m_vertices[2].m_color = {0.0f, 0.0f, 1.0f};
+
+		upload_meshes(m_triangle_mesh);
+	}
+
+	void Engine::upload_meshes(Mesh& mesh)
+	{
+		// allocate vertex buffer
+		vk::BufferCreateInfo buffer_create_info = {};
+		buffer_create_info.size = mesh.m_vertices.size() * sizeof(Vertex);
+		buffer_create_info.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+
+		// use VMA to specify that this data is written to by CPU and accessed by GPU
+		VmaAllocationCreateInfo vma_allocation_create_info = {};
+		vma_allocation_create_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		// workaround since vma does not natively support vulkan.hpp
+		VkBufferCreateInfo vertex_buffer_create_info = static_cast<VkBufferCreateInfo>(buffer_create_info);
+		VkBuffer vertex_buffer;
+
+		vk::Result res = vk::Result(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &vertex_buffer, &mesh.m_allocated_buffer.m_allocation_data, nullptr));
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyBuffer(m_vma_allocator, vertex_buffer, mesh.m_allocated_buffer.m_allocation_data)));
+	
+		mesh.m_allocated_buffer.m_buffer = vertex_buffer;
+
+		// now that we have memory spot for vertex data, copy vertices into this GPU readable location
+		void *data;
+		vmaMapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation_data, &data);
+
+		memcpy(data, mesh.m_vertices.data(), mesh.m_vertices.size() * sizeof(Vertex));
+
+		vmaUnmapMemory(m_vma_allocator, mesh.m_allocated_buffer.m_allocation_data);
 	}
 
 	void Engine::initialize_scene()
@@ -437,16 +561,9 @@ namespace halo
 		if (m_is_initialized)
 		{
 			m_device.destroySwapchainKHR(m_swapchain);
-			
-			m_device.destroyRenderPass(m_render_pass);
 
-			m_device.destroyCommandPool(m_main_command_pool);
-
-			for (size_t i = 0; i < m_swapchain_image_views.size(); i++)
-			{
-				m_device.destroyFramebuffer(m_framebuffers[i]);
-				m_device.destroyImageView(m_swapchain_image_views[i]);
-			}
+			// clear deletion list
+			m_deletion_list.clear_deletor_list();
 		}
 
 		m_device.destroy();

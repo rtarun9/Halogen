@@ -2,19 +2,17 @@
 
 #include <vulkan/vulkan.hpp>
 
-// need to remove this after refactoring is done
-#include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
 #include <glm/glm.hpp>
 
 #include <vector>
 #include <functional>
-#include <iostream>
 
 namespace halo
 {
 	struct Mesh;
+	struct Material;
 
 	struct DeletionList
 	{
@@ -42,14 +40,14 @@ namespace halo
 	// struct for the buffer allocated + some information like where it has been allocated, heap type, and VMA state.
 	struct AllocatedBuffer
 	{
-		VkBuffer m_buffer;
+		vk::Buffer m_buffer;
 		VmaAllocation m_allocation_data;
 	};
 
 	// struct for image allocated
 	struct AllocatedImage
 	{
-		VkImage m_image;
+		vk::Image m_image;
 		VmaAllocation m_allocation_data;
 	};
 
@@ -57,8 +55,8 @@ namespace halo
 
 	struct Material
 	{
-		VkPipeline m_pipeline;
-		VkPipelineLayout m_pipeline_layout;
+		vk::Pipeline m_pipeline;
+		vk::PipelineLayout m_pipeline_layout;
 	};
 
 	struct GameObject

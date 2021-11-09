@@ -1,5 +1,7 @@
 #include "../include/engine.h"
 
+#include <iostream>
+
 int main(int argc, char** argv)
 {
 	halo::Config config;
@@ -15,18 +17,18 @@ int main(int argc, char** argv)
 	catch (vk::SystemError& err)
 	{
 		std::cout << "vk::SystemError: " << err.what() << std::endl;
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 	catch (std::exception& err)
 	{
 		std::cout << "std::exception: " << err.what() << std::endl;
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 	catch (...)
 	{
 		std::cout << "unknown error\n";
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
