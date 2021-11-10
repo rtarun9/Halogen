@@ -1644,6 +1644,17 @@ detail::Result<std::vector<VkImage>> Swapchain::get_images () {
 	}
 	return swapchain_images;
 }
+
+std::vector<vk::Image> Swapchain::get_swapchain_images() {
+	std::vector<VkImage> images = get_images().value();
+	std::vector<vk::Image> ret;
+	for (const VkImage image : images) {
+		ret.push_back(image);
+	}
+
+	return ret;
+}
+
 detail::Result<std::vector<VkImageView>> Swapchain::get_image_views () {
 
 	auto swapchain_images_ret = get_images ();
@@ -1675,6 +1686,18 @@ detail::Result<std::vector<VkImageView>> Swapchain::get_image_views () {
 	}
 	return views;
 }
+
+std::vector<vk::ImageView> Swapchain::get_swapchain_image_views() {
+	std::vector<VkImageView> image_views = get_image_views().value();
+	std::vector<vk::ImageView> ret;
+
+	for (const VkImageView image_view : image_views) {
+		ret.push_back(image_view);
+	}
+
+	return ret;
+}
+
 void Swapchain::destroy_image_views (std::vector<VkImageView> const& image_views) {
 	for (auto& image_view : image_views) {
 		detail::vulkan_functions ().fp_vkDestroyImageView (device, image_view, allocation_callbacks);

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
+
 #include <vk_mem_alloc.h>
 
 #include <glm/glm.hpp>
@@ -11,6 +12,7 @@
 namespace halo
 {
 	struct Mesh;
+	struct Material;
 
 	struct DeletionList
 	{
@@ -35,17 +37,23 @@ namespace halo
 		}
 	};
 
+	struct MeshPushConstants
+	{
+		// transform_mat : projection_matrix * view_matrix * model_mat
+		glm::mat4 m_transform_mat;
+	};
+
 	// struct for the buffer allocated + some information like where it has been allocated, heap type, and VMA state.
 	struct AllocatedBuffer
 	{
-		VkBuffer m_buffer;
+		vk::Buffer m_buffer;
 		VmaAllocation m_allocation_data;
 	};
 
 	// struct for image allocated
 	struct AllocatedImage
 	{
-		VkImage m_image;
+		vk::Image m_image;
 		VmaAllocation m_allocation_data;
 	};
 
@@ -53,8 +61,8 @@ namespace halo
 
 	struct Material
 	{
-		VkPipeline m_pipeline;
-		VkPipelineLayout m_pipeline_layout;
+		vk::Pipeline m_pipeline;
+		vk::PipelineLayout m_pipeline_layout;
 	};
 
 	struct GameObject

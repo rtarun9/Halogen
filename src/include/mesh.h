@@ -10,10 +10,10 @@ namespace halo
 	struct VertexInputLayoutDescription
 	{
 		// contains how data is binded, and its vertex rate
-		std::vector<VkVertexInputBindingDescription> m_bindings;
+		std::vector<vk::VertexInputBindingDescription> m_bindings;
 
 		// attributes contain info such as the location to which a particular piece of data is stored (accessed via layout (location = x) in vertex shader
-		std::vector<VkVertexInputAttributeDescription> m_attributes;
+		std::vector<vk::VertexInputAttributeDescription> m_attributes;
 	};
 
 	struct Vertex
@@ -31,11 +31,6 @@ namespace halo
 		std::vector<Vertex> m_vertices;
 		AllocatedBuffer m_allocated_buffer;
 
-		void load_obj_file(const char *file_path);
-	};
-
-	struct PushConstants
-	{
-		glm::mat4 m_transform_mat;
+		void load_obj_from_file(const char *file_path);
 	};
 }

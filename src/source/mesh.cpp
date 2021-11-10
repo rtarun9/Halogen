@@ -13,31 +13,31 @@ namespace halo
 		VertexInputLayoutDescription input_layout_desc = {};
 
 		// one main vertex binding
-		VkVertexInputBindingDescription m_primary_binding_desc = {};
-		m_primary_binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		vk::VertexInputBindingDescription m_primary_binding_desc = {};
+		m_primary_binding_desc.inputRate = vk::VertexInputRate::eVertex;
 		m_primary_binding_desc.stride = sizeof(Vertex);
 		m_primary_binding_desc.binding = 0;
 
 		input_layout_desc.m_bindings.push_back(m_primary_binding_desc);
 
 		// attribute "position" at location 0
-		VkVertexInputAttributeDescription position_attribute_desc = {};
+		vk::VertexInputAttributeDescription position_attribute_desc = {};
 		position_attribute_desc.binding  = 0;
-		position_attribute_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+		position_attribute_desc.format = vk::Format::eR32G32B32Sfloat;
 		position_attribute_desc.location = 0;
 		position_attribute_desc.offset = offsetof(Vertex, m_position);
 
 		// attribute normal at location 1
-		VkVertexInputAttributeDescription normal_attribute_desc = {};
+		vk::VertexInputAttributeDescription normal_attribute_desc = {};
 		normal_attribute_desc.binding = 0;
-		normal_attribute_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+		normal_attribute_desc.format = vk::Format::eR32G32B32Sfloat;
 		normal_attribute_desc.location = 1;
 		normal_attribute_desc.offset  = offsetof(Vertex, m_normal);
 
 		// attribute color at location 2
-		VkVertexInputAttributeDescription color_attribute_desc = {};
+		vk::VertexInputAttributeDescription color_attribute_desc = {};
 		color_attribute_desc.binding = 0;
-		color_attribute_desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+		color_attribute_desc.format = vk::Format::eR32G32B32Sfloat;
 		color_attribute_desc.location = 2;
 		color_attribute_desc.offset = offsetof(Vertex, m_color);
 
@@ -49,7 +49,7 @@ namespace halo
 		return input_layout_desc;
 	}
 
-	void Mesh::load_obj_file(const char* file_path)
+	void Mesh::load_obj_from_file(const char* file_path)
 	{
 		// code from the example code (new oop based api) from tinyobjloader's github : https://github.com/tinyobjloader/tinyobjloader
 		tinyobj::ObjReaderConfig reader_config;
@@ -60,7 +60,7 @@ namespace halo
 		{
 			if (!reader.Error().empty())
 			{
-				std::cerr << "TinyObjReader : " << reader.Error();
+				throw std::runtime_error(reader.Error());
 			}
 		}
 

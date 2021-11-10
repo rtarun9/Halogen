@@ -5,13 +5,7 @@
 
 #include <vk_mem_alloc.h>
 
-#include <vector>
-#include <string>
-#include <unordered_map>
-
 struct SDL_Window;
-struct halo::DeletionList;
-struct halo::AllocatedBuffer;
 
 namespace halo
 {
@@ -26,6 +20,7 @@ namespace halo
 	{
 	public:
 		Engine(const Config& config);
+		~Engine();
 
 		void initialize();
 		void run();
@@ -33,10 +28,14 @@ namespace halo
 
 	private:
 		void render();
+		
+		void initialize_platform_backend();
 
 		void initialize_vulkan();
 
 		void initialize_swapchain();
+		void initialize_depth_buffer();
+
 		void initialize_command_objects();
 
 		void initialize_renderpass();
@@ -46,14 +45,14 @@ namespace halo
 		
 		void initialize_pipeline();
 
-		void load_shaders(const char *file_path, VkShaderModule& shader_module);
+		void load_shaders(const char *file_path, vk::ShaderModule& shader_module);
 		void load_meshes();
 
 		void upload_meshes(Mesh& mesh);
 
 		void initialize_scene();
 
-		void create_material(const std::string& material_name, VkPipeline pipeline, VkPipelineLayout pipeline_layout);
+		void create_material(const std::string& material_name, vk::Pipeline pipeline, vk::PipelineLayout pipeline_layout);
 
 		[[nodiscard]]
 		Material* get_material(const std::string& material_name);
@@ -70,64 +69,61 @@ namespace halo
 		Config m_config;
 
 		SDL_Window *m_window{nullptr};
-		VkExtent2D m_window_extent;
+		vk::Extent2D m_window_extent;
 		
-		// Main vulkan handles
-		VkInstance m_instance;
-		VkDebugUtilsMessengerEXT m_debug_messenger;
+		// Main (core) vulkan handles
+		vk::Instance m_instance;
+		vk::DebugUtilsMessengerEXT m_debug_messenger;
 		
-		VkPhysicalDevice m_physical_device;
-		VkDevice m_device;
+		vk::PhysicalDevice m_physical_device;
+		vk::Device m_device;
 
-		VkSurfaceKHR m_surface;
+		vk::SurfaceKHR m_surface;
 
-		VkSwapchainKHR  m_swapchain;
-		VkFormat m_swapchain_image_format;
-		std::vector<VkImage> m_swapchain_images;
-		std::vector<VkImageView> m_swapchain_image_views;
+		// Swapchain related handles
+		vk::SwapchainKHR m_swapchain;
+		vk::Format m_swapchain_image_format;
+		std::vector<vk::Image> m_swapchain_images;
+		std::vector<vk::ImageView> m_swapchain_image_views;
 
-		VkQueue m_graphics_queue;
+		// related to depth buffer
+		vk::Format m_depth_buffer_format;
+		vk::Image m_depth_buffer_image;
+		vk::ImageView m_depth_buffer_image_view;
+		AllocatedImage m_depth_buffer_allocation;
 
-		// index of the queue family that is required (this will be for both graphics and presentation).
-		uint32_t m_graphics_queue_family;
+		// Command objects
+		vk::CommandPool m_main_command_pool;
+		vk::CommandBuffer m_command_buffer;
 
-		VkCommandPool m_command_pool;
-		VkCommandBuffer m_command_buffer;
+		// Queue's and index into queue (both presentation + graphics)
+		vk::Queue m_graphics_queue;
+		uint32_t m_graphics_queue_index;
 
-		VkRenderPass m_renderpass;
-		std::vector<VkFramebuffer> m_framebuffers;
+		// Frambuffer, render pass and (todo : depth buffer)
+		vk::RenderPass m_render_pass;
+		std::vector<vk::Framebuffer> m_framebuffers;
 
-		// fence : GPU to CPU, semaphore : GPU to GPU
-		VkFence m_render_fence;
-		VkSemaphore m_render_semaphore;
-		VkSemaphore m_present_semaphore;
+		// sync objects
+		vk::Fence m_render_fence;
 
-		VkPipeline m_triangle_pipeline;
-		VkPipeline m_inverted_triangle_pipeline;
+		vk::Semaphore m_render_semaphore;
+		vk::Semaphore m_presentation_semaphore;
 
-		VkPipelineLayout m_triangle_pipeline_layout;
+		// for rendering
+		vk::Pipeline m_hardcoded_triangle_pipeline;
+		vk::PipelineLayout m_hardcoded_triangle_layout;
 
-		// depth buffer variables
-		AllocatedImage m_depth_buffer;
-		VkImageView m_depth_image_view;
-		VkFormat m_depth_format;
-
-		// utility / helper members
-		DeletionList m_deletors;
-
-		// objects for the main scene
-		VmaAllocator m_vma_allocator;
-
-		VkPipeline m_default_pipeline;
-		VkPipelineLayout m_default_pipeline_layout;
+		vk::Pipeline m_default_mesh_pipeline;
+		vk::PipelineLayout m_default_mesh_layout;
 
 		Mesh m_triangle_mesh;
 		Mesh m_monkey_mesh;
 
-		// for the game objects
-		std::vector<GameObject> m_game_objects;
+		// VMA allocator
+		VmaAllocator m_vma_allocator;
 
-		std::unordered_map<std::string, Material> m_materials;
-		std::unordered_map<std::string, Mesh> m_meshes;
+		// for handling cleanup convineintly
+		DeletionList m_deletion_list;
 	};
 }
