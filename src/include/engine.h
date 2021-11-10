@@ -34,6 +34,8 @@ namespace halo
 		void initialize_vulkan();
 
 		void initialize_swapchain();
+		void initialize_depth_buffer();
+
 		void initialize_command_objects();
 
 		void initialize_renderpass();
@@ -50,7 +52,7 @@ namespace halo
 
 		void initialize_scene();
 
-		void create_material(const std::string& material_name, VkPipeline pipeline, VkPipelineLayout pipeline_layout);
+		void create_material(const std::string& material_name, vk::Pipeline pipeline, vk::PipelineLayout pipeline_layout);
 
 		[[nodiscard]]
 		Material* get_material(const std::string& material_name);
@@ -84,6 +86,12 @@ namespace halo
 		std::vector<vk::Image> m_swapchain_images;
 		std::vector<vk::ImageView> m_swapchain_image_views;
 
+		// related to depth buffer
+		vk::Format m_depth_buffer_format;
+		vk::Image m_depth_buffer_image;
+		vk::ImageView m_depth_buffer_image_view;
+		AllocatedImage m_depth_buffer_allocation;
+
 		// Command objects
 		vk::CommandPool m_main_command_pool;
 		vk::CommandBuffer m_command_buffer;
@@ -106,10 +114,11 @@ namespace halo
 		vk::Pipeline m_hardcoded_triangle_pipeline;
 		vk::PipelineLayout m_hardcoded_triangle_layout;
 
-		vk::Pipeline m_triangle_pipeline;
-		vk::PipelineLayout m_triangle_layout;
+		vk::Pipeline m_default_mesh_pipeline;
+		vk::PipelineLayout m_default_mesh_layout;
 
 		Mesh m_triangle_mesh;
+		Mesh m_monkey_mesh;
 
 		// VMA allocator
 		VmaAllocator m_vma_allocator;

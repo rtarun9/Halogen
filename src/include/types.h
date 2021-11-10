@@ -37,6 +37,12 @@ namespace halo
 		}
 	};
 
+	struct MeshPushConstants
+	{
+		// transform_mat : projection_matrix * view_matrix * model_mat
+		glm::mat4 m_transform_mat;
+	};
+
 	// struct for the buffer allocated + some information like where it has been allocated, heap type, and VMA state.
 	struct AllocatedBuffer
 	{

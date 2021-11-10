@@ -43,7 +43,7 @@ namespace halo::init
 	vk::PipelineColorBlendAttachmentState create_color_blend_state();
 	
 	[[nodiscard]]
-	VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state();
+	vk::PipelineDepthStencilStateCreateInfo create_depth_stencil_state();
 
 	// pipeline layout : information of shader inputs
 	[[nodiscard]]
@@ -51,8 +51,8 @@ namespace halo::init
 	
 	// image related helper functions
 	[[nodiscard]]
-	VkImageCreateInfo create_image_info(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage);
-	
+	vk::ImageCreateInfo create_image_info(vk::Format format, vk::Extent3D extent, vk::ImageUsageFlagBits usage);
+
 	[[nodiscard]]
-	VkImageViewCreateInfo create_image_view_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags);
+	vk::ImageViewCreateInfo create_image_view_info(vk::Format format, vk::Image image, vk::ImageAspectFlagBits aspect_flags);
 }

@@ -49,7 +49,7 @@ namespace halo
 		return input_layout_desc;
 	}
 
-	void Mesh::load_obj_file(const char* file_path)
+	void Mesh::load_obj_from_file(const char* file_path)
 	{
 		// code from the example code (new oop based api) from tinyobjloader's github : https://github.com/tinyobjloader/tinyobjloader
 		tinyobj::ObjReaderConfig reader_config;
@@ -60,7 +60,7 @@ namespace halo
 		{
 			if (!reader.Error().empty())
 			{
-				std::cerr << "TinyObjReader : " << reader.Error();
+				throw std::runtime_error(reader.Error());
 			}
 		}
 

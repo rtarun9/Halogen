@@ -125,60 +125,50 @@ namespace halo::init
 		return create_info;
 	}
 
-	VkPipelineDepthStencilStateCreateInfo create_depth_stencil_state()
+	vk::PipelineDepthStencilStateCreateInfo  create_depth_stencil_state()
 	{
-		VkPipelineDepthStencilStateCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		create_info.pNext = nullptr;
-		
-		create_info.depthTestEnable = VK_TRUE;
-		create_info.depthWriteEnable = VK_TRUE;
-		create_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		create_info.depthBoundsTestEnable = VK_FALSE;
+		vk::PipelineDepthStencilStateCreateInfo  create_info = {};
+	
+		create_info.depthTestEnable = true;
+		create_info.depthWriteEnable = true;
+		create_info.depthCompareOp = vk::CompareOp::eLessOrEqual;
+		create_info.depthBoundsTestEnable = false;
 		create_info.minDepthBounds = 0.0f;
 		create_info.maxDepthBounds = 1.0f;
-		create_info.stencilTestEnable = VK_FALSE;
+		create_info.stencilTestEnable = false;
 
 		return create_info;
 	}
 
-	VkImageCreateInfo create_image_info(VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
+	vk::ImageCreateInfo create_image_info(vk::Format format, vk::Extent3D extent, vk::ImageUsageFlagBits usage)
 	{
-		VkImageCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		create_info.pNext = nullptr;
-		create_info.flags = 0;
+		vk::ImageCreateInfo  create_info = {};
 
-		create_info.imageType = VK_IMAGE_TYPE_2D;
+		create_info.imageType = vk::ImageType::e2D;
 		create_info.format = format;
 		create_info.extent = extent;
 		
 		create_info.mipLevels = 1;
 		create_info.arrayLayers = 1;
 
-		create_info.samples = VK_SAMPLE_COUNT_1_BIT;
+		create_info.samples = vk::SampleCountFlagBits::e1;
 
-		// VK_IMAGE_TILING_OPTIMAL specifies optimal tiling (since texels are laid out in a implementation dependent way, it cannot be read from CPU).
-		create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		// vk::ImageTiling::eOptimal specifies optimal tiling (since texels are laid out in a implementation dependent way, it cannot be read from CPU).
+		create_info.tiling = vk::ImageTiling::eOptimal;
 		
 		create_info.usage = usage;
 		
-		//create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 		return create_info;
 	}
 
-	VkImageViewCreateInfo create_image_view_info(VkFormat format, VkImage image, VkImageAspectFlags aspect_flags)
+	vk::ImageViewCreateInfo create_image_view_info(vk::Format format, vk::Image image, vk::ImageAspectFlagBits aspect_flags)
 	{
-		VkImageViewCreateInfo create_info = {};
-		create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		create_info.pNext = nullptr;
+		vk::ImageViewCreateInfo  create_info = {};
 
 		create_info.format = format;
 		create_info.image = image;
-		create_info.flags = 0;
 
-		create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		create_info.viewType = vk::ImageViewType::e2D;
 
 		//subresourceRange holds the information about where the image points to. 
 		create_info.subresourceRange.baseArrayLayer = 0;

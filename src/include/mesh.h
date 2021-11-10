@@ -31,11 +31,6 @@ namespace halo
 		std::vector<Vertex> m_vertices;
 		AllocatedBuffer m_allocated_buffer;
 
-		void load_obj_file(const char *file_path);
-	};
-
-	struct PushConstants
-	{
-		glm::mat4 m_transform_mat;
+		void load_obj_from_file(const char *file_path);
 	};
 }

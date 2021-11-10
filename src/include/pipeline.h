@@ -32,6 +32,9 @@ namespace halo
 		// control how the pipeline goes about blending into some given attachment.
 		vk::PipelineColorBlendAttachmentState m_color_blend_state_attachment;
 
+		// setup for depth and stencil buffer
+		vk::PipelineDepthStencilStateCreateInfo m_depth_stencil_state_info;
+
 		// configure MSAA for a pipeline.
 		vk::PipelineMultisampleStateCreateInfo m_multisample_state_info;
 

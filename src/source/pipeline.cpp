@@ -34,6 +34,7 @@ namespace halo
 		pipeline_create_info.pRasterizationState = &m_rasterizer_state_info;
 		pipeline_create_info.pMultisampleState = &m_multisample_state_info;
 		pipeline_create_info.pColorBlendState = &color_blend_state_create_info;
+		pipeline_create_info.pDepthStencilState = &m_depth_stencil_state_info;
 
 		pipeline_create_info.layout = m_pipeline_layout;
 		pipeline_create_info.renderPass = render_pass;
