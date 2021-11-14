@@ -19,4 +19,3 @@ target_include_directories(vkbootstrap PUBLIC vkbootstrap)
 target_include_directories(vma INTERFACE vma)
 
 target_link_libraries(vkbootstrap PUBLIC Vulkan::Vulkan $<$<BOOL:UNIX>:${CMAKE_DL_LIBS}>)
-

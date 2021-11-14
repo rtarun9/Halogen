@@ -8,7 +8,6 @@ add_executable(Halogen
  "source/pipeline.cpp"
  "source/mesh.cpp")
 
- 
 set_property(TARGET Halogen PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:Halogen>)
 
 target_include_directories(Halogen PUBLIC ${SDL_INCLUDE_DIR} ${Vulkan_INCLUDE_DIRS} ${GLM_INCLUDE_DIR}) 

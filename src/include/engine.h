@@ -5,7 +5,12 @@
 
 #include <vk_mem_alloc.h>
 
+#include <unordered_map>
+
 struct SDL_Window;
+
+// frames in flight : decides single / double / triple buffering
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 namespace halo
 {
@@ -60,7 +65,9 @@ namespace halo
 		[[nodiscard]]
 		Mesh* get_mesh(const std::string& mesh_name);
 
-		void draw_objects(VkCommandBuffer command_buffer, GameObject* game_object, int game_object_count);
+		void draw_objects(vk::CommandBuffer command_buffer, GameObject* game_object);
+
+		FrameData& get_current_frame_data();
 
 	private:
 		bool m_is_initialized{false};
@@ -73,6 +80,8 @@ namespace halo
 		
 		// Main (core) vulkan handles
 		vk::Instance m_instance;
+
+		[[maybe_unused]]
 		vk::DebugUtilsMessengerEXT m_debug_messenger;
 		
 		vk::PhysicalDevice m_physical_device;
@@ -87,14 +96,10 @@ namespace halo
 		std::vector<vk::ImageView> m_swapchain_image_views;
 
 		// related to depth buffer
-		vk::Format m_depth_buffer_format;
-		vk::Image m_depth_buffer_image;
-		vk::ImageView m_depth_buffer_image_view;
-		AllocatedImage m_depth_buffer_allocation;
-
-		// Command objects
-		vk::CommandPool m_main_command_pool;
-		vk::CommandBuffer m_command_buffer;
+		vk::Format m_depth_image_format;
+		vk::Image m_depth_image;
+		vk::ImageView m_depth_image_view;
+		AllocatedImage m_depth_image_allocation;
 
 		// Queue's and index into queue (both presentation + graphics)
 		vk::Queue m_graphics_queue;
@@ -104,21 +109,22 @@ namespace halo
 		vk::RenderPass m_render_pass;
 		std::vector<vk::Framebuffer> m_framebuffers;
 
-		// sync objects
-		vk::Fence m_render_fence;
-
-		vk::Semaphore m_render_semaphore;
-		vk::Semaphore m_presentation_semaphore;
+		FrameData m_frames[MAX_FRAMES_IN_FLIGHT];
 
 		// for rendering
-		vk::Pipeline m_hardcoded_triangle_pipeline;
-		vk::PipelineLayout m_hardcoded_triangle_layout;
+		vk::Pipeline m_triangle_pipeline;
+		vk::PipelineLayout m_triangle_pipeline_layout;
 
 		vk::Pipeline m_default_mesh_pipeline;
 		vk::PipelineLayout m_default_mesh_layout;
 
 		Mesh m_triangle_mesh;
 		Mesh m_monkey_mesh;
+		
+		// scene management objects
+		std::vector<GameObject> m_game_objects;
+		std::unordered_map<std::string, Material> m_materials;
+		std::unordered_map<std::string, Mesh> m_meshes;
 
 		// VMA allocator
 		VmaAllocator m_vma_allocator;
