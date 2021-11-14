@@ -59,6 +59,7 @@ namespace halo
 
 	// struct for game objects :  
 
+	// Material : pipeline and pipeline layout 
 	struct Material
 	{
 		vk::Pipeline m_pipeline;
@@ -72,4 +73,14 @@ namespace halo
 		glm::mat4 m_mesh_transform;
 	};
 
+	struct FrameData
+	{
+		vk::Semaphore m_presentation_semaphore;
+		vk::Semaphore m_render_semaphore;
+
+		vk::Fence m_render_fence;
+
+		vk::CommandPool m_primary_command_pool;
+		vk::CommandBuffer m_command_buffer;
+	};
 }
