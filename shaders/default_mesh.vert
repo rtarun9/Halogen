@@ -13,9 +13,17 @@ layout (push_constant) uniform constants
 	mat4 m_transform_mat;
 } PushConstants;
 
+layout (set = 0, binding = 0) uniform CameraBuffer
+{
+	mat4 m_view_mat;
+	mat4 m_projection_mat;
+
+	mat4 m_projection_view_mat;
+} cameraBuffer;
+
 void main()
 {
-	gl_Position = PushConstants.m_transform_mat * vec4(in_position, 1.0f);
+	gl_Position = cameraBuffer.m_projection_view_mat * PushConstants.m_transform_mat * vec4(in_position, 1.0f);
 
 	frag_color = in_color;
 }

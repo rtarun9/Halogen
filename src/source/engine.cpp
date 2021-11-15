@@ -23,7 +23,7 @@
 #define VK_CHECK(x)                                                    \
 do																	   \
 {																	   \
-	vk::Result res = x;												   \
+	vk::Result res = vk::Result(x);												   \
 	if (res != vk::Result::eSuccess)								   \
 	{																   \
 		std::cerr << "Vulkan Error : " << res << std::endl;			   \
@@ -65,6 +65,8 @@ namespace halo
 		initialize_framebuffers();
 
 		initialize_synchronization_objects();
+
+		initialize_descriptors();
 
 		initialize_pipeline();
 
@@ -245,6 +247,7 @@ namespace halo
 		vk::PhysicalDeviceProperties device_properties = m_physical_device.getProperties();
 		
 		std::cout << "Device chosen : "  << device_properties.deviceName<< '\n';
+		std::cout << "Minimum uniform buffer offset alignment : " << device_properties.limits.minUniformBufferOffsetAlignment << '\n';
 		
 		// create the vma allocator
 		VmaAllocatorCreateInfo vma_allocator_create_info = {};
@@ -427,6 +430,70 @@ namespace halo
 		}
 	}
 
+	void Engine::initialize_descriptors()
+	{
+		// information about binding for camera buffer (bound at binding 0)
+		vk::DescriptorSetLayoutBinding camera_buffer_binding{};
+		camera_buffer_binding.binding = 0;
+		camera_buffer_binding.descriptorCount = 1;
+		camera_buffer_binding.descriptorType = vk::DescriptorType::eUniformBuffer;
+		camera_buffer_binding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+
+		// Create the descriptor set layout
+		vk::DescriptorSetLayoutCreateInfo layout_create_info{};
+		layout_create_info.bindingCount = 1;
+		layout_create_info.pBindings = &camera_buffer_binding;
+
+		m_global_descriptor_set_layout = m_device.createDescriptorSetLayout(layout_create_info);
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyDescriptorSetLayout(m_global_descriptor_set_layout)));
+
+		// create descriptor pool, that can hold pointers to 10 uniform buffers
+		// vk::DescriptorPoolSize is a struct having the type and the number of pointers to that type of descriptor that will be allocated from it.
+		std::vector<vk::DescriptorPoolSize> descriptor_pool_size = { {vk::DescriptorType::eUniformBuffer, 10} };
+
+		vk::DescriptorPoolCreateInfo descriptor_pool_create_info{};
+		descriptor_pool_create_info.poolSizeCount = static_cast<uint32_t>(descriptor_pool_size.size());
+		descriptor_pool_create_info.pPoolSizes = descriptor_pool_size.data();
+		descriptor_pool_create_info.maxSets = 10;
+
+		m_descriptor_pool = m_device.createDescriptorPool(descriptor_pool_create_info);
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyDescriptorPool(m_descriptor_pool)));
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			m_frames[i].m_camera_allocated_buffer = create_buffer(sizeof(CameraData), vk::BufferUsageFlagBits::eUniformBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			
+			// allocation one descriptor set for each frame
+			vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{};
+			descriptor_set_allocate_info.descriptorPool = m_descriptor_pool;
+			descriptor_set_allocate_info.descriptorSetCount = 1;
+			descriptor_set_allocate_info.pSetLayouts = &m_global_descriptor_set_layout;
+
+			m_frames[i].m_global_descriptor_set = m_device.allocateDescriptorSets(descriptor_set_allocate_info)[0];
+
+			// point descriptor set to buffer
+			
+			// information about the buffer we want descriptor set to point to
+			vk::DescriptorBufferInfo buffer_info{};
+			buffer_info.buffer = m_frames[i].m_camera_allocated_buffer.m_buffer;
+			buffer_info.offset = 0;
+			buffer_info.range = sizeof(CameraData);
+
+			vk::WriteDescriptorSet set_write{};
+			set_write.dstBinding = 0;
+
+			// Destination descriptor set to update
+			set_write.dstSet = m_frames[i].m_global_descriptor_set;
+	
+			set_write.descriptorCount = 1;
+			set_write.descriptorType = vk::DescriptorType::eUniformBuffer;
+			set_write.pBufferInfo = &buffer_info;
+
+			m_device.updateDescriptorSets(set_write, nullptr);
+		}
+			
+	}
+
 	void Engine::initialize_pipeline()
 	{
 		// for triangle's
@@ -478,10 +545,13 @@ namespace halo
 			push_constant_range.offset = 0;
 			push_constant_range.stageFlags = vk::ShaderStageFlagBits::eVertex;
 
-			//m_default_mesh_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
+			// bind push_constants and descriptor sets to the pipeline
 			vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {};
 			pipeline_layout_create_info.pushConstantRangeCount = 1;
 			pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+
+			pipeline_layout_create_info.pSetLayouts = &m_global_descriptor_set_layout;
+			pipeline_layout_create_info.setLayoutCount = 1;
 
 			m_triangle_pipeline_layout = m_device.createPipelineLayout(pipeline_layout_create_info);
 			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipelineLayout(m_triangle_pipeline_layout)));
@@ -543,10 +613,13 @@ namespace halo
 			push_constant_range.offset = 0;
 			push_constant_range.stageFlags = vk::ShaderStageFlagBits::eVertex;
 
-			//m_default_mesh_layout = m_device.createPipelineLayout(init::create_pipeline_layout());
+			// bind push_constants and descriptor sets to the pipeline
 			vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {};
 			pipeline_layout_create_info.pushConstantRangeCount = 1;
 			pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
+
+			pipeline_layout_create_info.pSetLayouts = &m_global_descriptor_set_layout;
+			pipeline_layout_create_info.setLayoutCount = 1;
 
 			m_default_mesh_layout = m_device.createPipelineLayout(pipeline_layout_create_info);
 			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyPipelineLayout(m_default_mesh_layout)));
@@ -702,18 +775,32 @@ namespace halo
 		Mesh *last_mesh = nullptr;
 		Material *last_material = nullptr;
 
+		// Camera data struct : that will pass data to shader's via descriptor sets.
+		CameraData camera_data;
+		camera_data.m_projection_mat = projection_mat;
+		camera_data.m_view_mat = view;
+		camera_data.m_projection_view_mat = projection_mat * view;
+
+		// copy data to buffer (GPU side)
+		void *data;
+		vmaMapMemory(m_vma_allocator, get_current_frame_data().m_camera_allocated_buffer.m_allocation_data, &data);
+		memcpy(data, &camera_data, sizeof(CameraData));
+		vmaUnmapMemory(m_vma_allocator, get_current_frame_data().m_camera_allocated_buffer.m_allocation_data);
+
 		for (const auto& game_object : m_game_objects)
 		{
 			if (game_object.m_material != last_material)
 			{
 				command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, game_object.m_material->m_pipeline);
 				last_material = game_object.m_material;
+
+				command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, game_object.m_material->m_pipeline_layout, 0, 1, &get_current_frame_data().m_global_descriptor_set, 0, nullptr);
 			}
 
 			glm::mat4 model_mat = glm::rotate(game_object.m_mesh_transform, glm::radians(float(m_frame_number)), glm::vec3(0.0f ,1.0f, 0.0f));
 			
 			MeshPushConstants push_constants;
-			push_constants.m_transform_mat = projection_mat * view * model_mat;
+			push_constants.m_transform_mat = model_mat;
 			command_buffer.pushConstants(last_material->m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(MeshPushConstants), &push_constants);
 
 			if (game_object.m_mesh != last_mesh)
@@ -732,6 +819,42 @@ namespace halo
 	{
 		return m_frames[m_frame_number % MAX_FRAMES_IN_FLIGHT];
 	}
+
+	AllocatedBuffer Engine::create_buffer(size_t allocation_size, vk::BufferUsageFlagBits usage, VmaMemoryUsage memory_usage)
+	{
+		vk::BufferCreateInfo buffer_create_info = {};
+		buffer_create_info.size = allocation_size;
+		buffer_create_info.usage = usage;
+
+		VmaAllocationCreateInfo allocation_create_info = {};
+		allocation_create_info.usage = memory_usage;
+
+		VkBufferCreateInfo create_info = static_cast<VkBufferCreateInfo>(buffer_create_info);
+		VkBuffer buffer;
+
+		AllocatedBuffer allocated_buffer;
+		VK_CHECK(vmaCreateBuffer(m_vma_allocator, &create_info, &allocation_create_info, &buffer, &allocated_buffer.m_allocation_data, nullptr));
+
+		allocated_buffer.m_buffer = buffer;
+
+		return allocated_buffer;
+	}
+
+	size_t Engine::pad_uniform_buffer(size_t actual_size)
+	{
+		vk::PhysicalDeviceProperties physical_device_properties = m_physical_device.getProperties();
+		size_t minimum_uniform_buffer_alignment = physical_device_properties.limits.minUniformBufferOffsetAlignment;
+		
+		size_t aligned_size = actual_size;
+		if (minimum_uniform_buffer_alignment > 0)
+		{
+			// this formula is taken from : https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer
+			aligned_size = (aligned_size + minimum_uniform_buffer_alignment - 1) & ~(minimum_uniform_buffer_alignment - 1);
+		}
+		
+		return aligned_size;
+	}
+
 	void Engine::clean()
 	{
 		m_device.waitIdle();
@@ -741,6 +864,7 @@ namespace halo
 			m_device.destroySwapchainKHR(m_swapchain);
 
 			// clear deletion list
+			// note : there is currently a memory leak regarding VkBuffers. Will be fixed soon.
 			m_deletion_list.clear_deletor_list();
 		}
 

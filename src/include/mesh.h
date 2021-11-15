@@ -2,11 +2,9 @@
 
 #include "types.h"
 
-#include <glm/glm.hpp>
-
 namespace halo
 {
-	// hold information on how the vertex buffer data is laid out and how to be interpreted.
+	// hold information on how the vertex buffer data is laid out and how to be interpreted. (Vulkan's VAO)
 	struct VertexInputLayoutDescription
 	{
 		// contains how data is binded, and its vertex rate
@@ -16,6 +14,7 @@ namespace halo
 		std::vector<vk::VertexInputAttributeDescription> m_attributes;
 	};
 
+	// Position, normal, color
 	struct Vertex
 	{
 		glm::vec3 m_position;
@@ -26,11 +25,13 @@ namespace halo
 		static VertexInputLayoutDescription get_vertex_input_layout_description();
 	};
 
+	// GameObject's mesh : contains allocated buffer (vk::Buffer + allocation info) and set of vertices
 	struct Mesh
 	{
 		std::vector<Vertex> m_vertices;
 		AllocatedBuffer m_allocated_buffer;
 
+		[[maybe_unused]]
 		void load_obj_from_file(const char *file_path);
 	};
 }

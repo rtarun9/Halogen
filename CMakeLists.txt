@@ -21,8 +21,16 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/shaders/*.comp"
 )
 
-target_precompile_headers(Halogen PRIVATE 
-    <vulkan/vulkan.hpp>)
+# PCH
+target_precompile_headers(Halogen 
+    PRIVATE 
+        <string>
+        <vector>
+        <unordered_map>
+     
+    PUBLIC
+        <vulkan/vulkan.hpp>
+)
 
 ## iterate each shader
 foreach(GLSL ${GLSL_SOURCE_FILES})
@@ -41,4 +49,4 @@ endforeach(GLSL)
 add_custom_target(
     run ALL
     DEPENDS ${SPIRV_BINARY_FILES} 
-    )
+)

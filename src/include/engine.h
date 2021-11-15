@@ -47,6 +47,8 @@ namespace halo
 		void initialize_framebuffers();
 
 		void initialize_synchronization_objects();
+
+		void initialize_descriptors();
 		
 		void initialize_pipeline();
 
@@ -67,7 +69,16 @@ namespace halo
 
 		void draw_objects(vk::CommandBuffer command_buffer, GameObject* game_object);
 
+		// Util function to get the current frame (from the m_frame_data array) that is being used
 		FrameData& get_current_frame_data();
+
+		// Utils for buffer creation
+		[[nodiscard]]
+		AllocatedBuffer create_buffer(size_t allocation_size, vk::BufferUsageFlagBits usage, VmaMemoryUsage memory_usage);
+
+		// Util function to pad size of alignment boundary, so that it the required alignment is based on device offset alignment
+		[[nodiscard]]
+		size_t pad_uniform_buffer(size_t actual_size);
 
 	private:
 		bool m_is_initialized{false};
@@ -110,6 +121,13 @@ namespace halo
 		std::vector<vk::Framebuffer> m_framebuffers;
 
 		FrameData m_frames[MAX_FRAMES_IN_FLIGHT];
+
+		EnvironmentData m_environment_data;
+		AllocatedBuffer m_environment_parameter_buffer;
+
+		// descriptor related handles
+		vk::DescriptorPool m_descriptor_pool;
+		vk::DescriptorSetLayout m_global_descriptor_set_layout;
 
 		// for rendering
 		vk::Pipeline m_triangle_pipeline;

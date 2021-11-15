@@ -6,6 +6,7 @@
 
 namespace halo
 {
+	// Helper class that can be configured and used to build pipeline
 	class PipelineBuilder
 	{
 	public:
