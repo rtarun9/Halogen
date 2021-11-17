@@ -179,4 +179,27 @@ namespace halo::init
 
 		return create_info;
 	}
+
+	vk::DescriptorSetLayoutBinding create_descriptor_set_layout_binding(vk::DescriptorType type, vk::ShaderStageFlags shader_stage, uint32_t binding)
+	{
+		vk::DescriptorSetLayoutBinding set_layout_binding{};
+		set_layout_binding.binding = binding;
+		set_layout_binding.descriptorCount = 1;
+		set_layout_binding.descriptorType = type;
+		set_layout_binding.stageFlags = shader_stage;
+
+		return set_layout_binding;
+	}
+
+	vk::WriteDescriptorSet write_descriptor_buffer(vk::DescriptorType type, vk::DescriptorSet descriptor_set, vk::DescriptorBufferInfo* buffer_info, uint32_t binding)
+	{
+		vk::WriteDescriptorSet descriptor_set_write{};
+		descriptor_set_write.dstBinding = binding;
+		descriptor_set_write.dstSet = descriptor_set;
+		descriptor_set_write.descriptorCount = 1;
+		descriptor_set_write.descriptorType = type;
+		descriptor_set_write.pBufferInfo = buffer_info;
+
+		return descriptor_set_write;
+	}
 }

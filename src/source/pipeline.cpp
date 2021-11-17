@@ -41,6 +41,11 @@ namespace halo
 		pipeline_create_info.subpass = 0;
 		
 		vk::ResultValue<vk::Pipeline> pipeline = device.createGraphicsPipeline(nullptr, pipeline_create_info);
+		if (pipeline.result != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("Failed to create pipeline");
+		}
+
 		return pipeline.value;
 	}
 }

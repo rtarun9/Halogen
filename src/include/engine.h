@@ -34,23 +34,23 @@ namespace halo
 	private:
 		void render();
 		
-		void initialize_platform_backend();
+		void init_platform_backend();
 
-		void initialize_vulkan();
+		void init_vulkan();
 
-		void initialize_swapchain();
-		void initialize_depth_buffer();
+		void init_swapchain();
+		void init_depth_buffer();
 
-		void initialize_command_objects();
+		void init_command_objects();
 
-		void initialize_renderpass();
-		void initialize_framebuffers();
+		void init_renderpass();
+		void init_framebuffers();
 
-		void initialize_synchronization_objects();
+		void init_synchronization_objects();
 
-		void initialize_descriptors();
+		void init_descriptors();
 		
-		void initialize_pipeline();
+		void init_pipeline();
 
 		void load_shaders(const char *file_path, vk::ShaderModule& shader_module);
 		void load_meshes();

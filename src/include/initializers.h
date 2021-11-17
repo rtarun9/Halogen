@@ -55,4 +55,11 @@ namespace halo::init
 
 	[[nodiscard]]
 	vk::ImageViewCreateInfo create_image_view_info(vk::Format format, vk::Image image, vk::ImageAspectFlagBits aspect_flags);
+
+	// helper functions for descriptor sets
+	[[nodiscard]]
+	vk::DescriptorSetLayoutBinding create_descriptor_set_layout_binding(vk::DescriptorType type, vk::ShaderStageFlags shader_stage, uint32_t binding);
+
+	[[nodiscard]]
+	vk::WriteDescriptorSet write_descriptor_buffer(vk::DescriptorType type, vk::DescriptorSet descriptor_set, vk::DescriptorBufferInfo *buffer_info, uint32_t binding);
 }

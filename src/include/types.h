@@ -105,6 +105,7 @@ namespace halo
 	};
 
 	// struct having data of environment. Size : 4 * 4 * 5  = 80 bytes
+	// Environment data will be used by dynamic descriptor sets, so we will have multiple descriptor sets point to this same buffer.
 	struct EnvironmentData
 	{
 		// w is used as exponent

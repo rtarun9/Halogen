@@ -23,7 +23,7 @@
 #define VK_CHECK(x)                                                    \
 do																	   \
 {																	   \
-	vk::Result res = vk::Result(x);												   \
+	vk::Result res = vk::Result(x);								       \
 	if (res != vk::Result::eSuccess)								   \
 	{																   \
 		std::cerr << "Vulkan Error : " << res << std::endl;			   \
@@ -52,23 +52,23 @@ namespace halo
 
 	void Engine::initialize()
 	{
-		initialize_platform_backend();
+		init_platform_backend();
 		
-		initialize_vulkan();
+		init_vulkan();
 
-		initialize_swapchain();
-		initialize_depth_buffer();
+		init_swapchain();
+		init_depth_buffer();
 
-		initialize_command_objects();
+		init_command_objects();
 
-		initialize_renderpass();
-		initialize_framebuffers();
+		init_renderpass();
+		init_framebuffers();
 
-		initialize_synchronization_objects();
+		init_synchronization_objects();
 
-		initialize_descriptors();
+		init_descriptors();
 
-		initialize_pipeline();
+		init_pipeline();
 
 		load_meshes();
 
@@ -185,7 +185,7 @@ namespace halo
 		m_frame_number++;
 	};
 
-	void Engine::initialize_platform_backend()
+	void Engine::init_platform_backend()
 	{
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		{
@@ -208,7 +208,7 @@ namespace halo
 	}
 
 	// use vkbootstrap for initializing core Vk objects. Will be replaced later.
-	void Engine::initialize_vulkan()
+	void Engine::init_vulkan()
 	{
 		vkb::InstanceBuilder instance_builder;
 
@@ -254,7 +254,7 @@ namespace halo
 		vma_allocator_create_info.device = m_device;
 		vma_allocator_create_info.instance = m_instance;
 		vma_allocator_create_info.physicalDevice = m_physical_device;
-		vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator);
+		VK_CHECK(vmaCreateAllocator(&vma_allocator_create_info, &m_vma_allocator));
 
 		// acquire queue and its index
 		m_graphics_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
@@ -262,7 +262,7 @@ namespace halo
 	}
 
 	// uses vkbootstrap for swapchain initialization.
-	void Engine::initialize_swapchain()
+	void Engine::init_swapchain()
 	{
 		vkb::SwapchainBuilder swapchain_builder{m_physical_device, m_device, m_surface};
 
@@ -281,7 +281,7 @@ namespace halo
 		m_swapchain_image_format = vk::Format(vkb_swapchain.image_format);
 	}
 
-	void Engine::initialize_depth_buffer()
+	void Engine::init_depth_buffer()
 	{
 		m_depth_image_format = vk::Format::eD32Sfloat;
 		
@@ -296,27 +296,27 @@ namespace halo
 		depth_image_allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		depth_image_allocation_create_info.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-		// since Vma does not natively support vulkan.hpp, some workarounds must be used.
+		auto image = static_cast<VkImage>(m_depth_image_allocation.m_image);
 		auto image_create_info = static_cast<VkImageCreateInfo>(depth_image_create_info);
-		auto image = static_cast<VkImage>(m_depth_image);
 
-		vmaCreateImage(m_vma_allocator, &image_create_info, &depth_image_allocation_create_info, &image, &m_depth_image_allocation.m_allocation_data, nullptr);
+		VK_CHECK(vmaCreateImage(m_vma_allocator, &image_create_info, &depth_image_allocation_create_info, &image, &m_depth_image_allocation.m_allocation_data, nullptr));
 
+		// m_depth_image is merely a reference (well, logically but the c++ way) to the vk::Image in the m_depth_image_allocation member.
 		m_depth_image = image;
+		m_depth_image_allocation.m_image = image;
 
 		vk::ImageViewCreateInfo depth_image_view_create_info = init::create_image_view_info(m_depth_image_format, m_depth_image, vk::ImageAspectFlagBits::eDepth);
 		m_depth_image_view = m_device.createImageView(depth_image_view_create_info);
-
+		
 		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyImageView(m_depth_image_view)));
-		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyImage(m_vma_allocator, image, nullptr)));
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyImage(m_vma_allocator, static_cast<VkImage>(m_depth_image_allocation.m_image), m_depth_image_allocation.m_allocation_data)));
 
 	}
 
-	void Engine::initialize_command_objects()
+	void Engine::init_command_objects()
 	{
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-
 			vk::CommandPoolCreateInfo command_pool_create_info = init::create_command_pool(m_graphics_queue_index);
 			m_frames[i].m_primary_command_pool = m_device.createCommandPool(command_pool_create_info);
 			m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyCommandPool(m_frames[i].m_primary_command_pool)));
@@ -327,7 +327,7 @@ namespace halo
 	}
 
 	// renderpass stores the state of images rendering into, and the state needed to setup the target framebuffer for rendering.
-	void Engine::initialize_renderpass()
+	void Engine::init_renderpass()
 	{
 		// create the color attachment
 		vk::AttachmentDescription color_attachment_desc = {};
@@ -387,7 +387,7 @@ namespace halo
 	
 	// acts as a link between the attachments of the renderpassand the real images that they should render to.
 	// contains color, depth, stencil and other buffers.
-	void Engine::initialize_framebuffers()
+	void Engine::init_framebuffers()
 	{
 		// since most properties will be shared, all fb create info structs will be made by modifying this template
 		vk::FramebufferCreateInfo framebuffer_create_info = {};
@@ -413,7 +413,7 @@ namespace halo
 	}
 
 	// sync objects : fence (GPU to CPU), semaphore (GPU to GPU)
-	void Engine::initialize_synchronization_objects()
+	void Engine::init_synchronization_objects()
 	{
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
@@ -430,25 +430,29 @@ namespace halo
 		}
 	}
 
-	void Engine::initialize_descriptors()
+	void Engine::init_descriptors()
 	{
 		// information about binding for camera buffer (bound at binding 0)
-		vk::DescriptorSetLayoutBinding camera_buffer_binding{};
-		camera_buffer_binding.binding = 0;
-		camera_buffer_binding.descriptorCount = 1;
-		camera_buffer_binding.descriptorType = vk::DescriptorType::eUniformBuffer;
-		camera_buffer_binding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+		vk::DescriptorSetLayoutBinding camera_buffer_binding = init::create_descriptor_set_layout_binding(vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex, 0);
 
-		// Create the descriptor set layout
+		// information about environment data (bound at binding 1)
+		const vk::ShaderStageFlags VF = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+
+		vk::DescriptorSetLayoutBinding environment_buffer_binding = init::create_descriptor_set_layout_binding(vk::DescriptorType::eUniformBuffer, VF, 1);
+		
+		vk::DescriptorSetLayoutBinding bindings[] = {camera_buffer_binding, environment_buffer_binding};
+
+		// Create the descriptor set layout (it is the shape of descriptor : what all its binding to and how much of it)
 		vk::DescriptorSetLayoutCreateInfo layout_create_info{};
-		layout_create_info.bindingCount = 1;
-		layout_create_info.pBindings = &camera_buffer_binding;
+		layout_create_info.bindingCount = 2;
+		layout_create_info.pBindings = bindings;
 
 		m_global_descriptor_set_layout = m_device.createDescriptorSetLayout(layout_create_info);
 		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyDescriptorSetLayout(m_global_descriptor_set_layout)));
 
 		// create descriptor pool, that can hold pointers to 10 uniform buffers
-		// vk::DescriptorPoolSize is a struct having the type and the number of pointers to that type of descriptor that will be allocated from it.
+		// the descriptor pool is used to allcate descriptors from it
+		// vk::DescriptorPoolSize is a struct having the type and the maximum number of pointers to that type of descriptor that can be allocated from it.
 		std::vector<vk::DescriptorPoolSize> descriptor_pool_size = { {vk::DescriptorType::eUniformBuffer, 10} };
 
 		vk::DescriptorPoolCreateInfo descriptor_pool_create_info{};
@@ -459,12 +463,19 @@ namespace halo
 		m_descriptor_pool = m_device.createDescriptorPool(descriptor_pool_create_info);
 		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(m_device.destroyDescriptorPool(m_descriptor_pool)));
 
+		// for dynamic descriptor sets
+		// allocate buffer by padding it properly so tha we can fit 2 padded EnvironmentData structs
+		const size_t environment_buffer_size = MAX_FRAMES_IN_FLIGHT * pad_uniform_buffer(sizeof(EnvironmentData));
+		m_environment_parameter_buffer = create_buffer(environment_buffer_size, vk::BufferUsageFlagBits::eUniformBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
+			// each frame has its own camera data buffer.
 			m_frames[i].m_camera_allocated_buffer = create_buffer(sizeof(CameraData), vk::BufferUsageFlagBits::eUniformBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			
 			// allocation one descriptor set for each frame
 			vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{};
+
 			descriptor_set_allocate_info.descriptorPool = m_descriptor_pool;
 			descriptor_set_allocate_info.descriptorSetCount = 1;
 			descriptor_set_allocate_info.pSetLayouts = &m_global_descriptor_set_layout;
@@ -474,27 +485,29 @@ namespace halo
 			// point descriptor set to buffer
 			
 			// information about the buffer we want descriptor set to point to
-			vk::DescriptorBufferInfo buffer_info{};
-			buffer_info.buffer = m_frames[i].m_camera_allocated_buffer.m_buffer;
-			buffer_info.offset = 0;
-			buffer_info.range = sizeof(CameraData);
+			vk::DescriptorBufferInfo camera_buffer_info{};
+			camera_buffer_info.buffer = m_frames[i].m_camera_allocated_buffer.m_buffer;
+			camera_buffer_info.offset = 0;
+			camera_buffer_info.range = sizeof(CameraData);
 
-			vk::WriteDescriptorSet set_write{};
-			set_write.dstBinding = 0;
+			vk::DescriptorBufferInfo environment_buffer_info{};
+			environment_buffer_info.buffer = m_environment_parameter_buffer.m_buffer;
 
-			// Destination descriptor set to update
-			set_write.dstSet = m_frames[i].m_global_descriptor_set;
-	
-			set_write.descriptorCount = 1;
-			set_write.descriptorType = vk::DescriptorType::eUniformBuffer;
-			set_write.pBufferInfo = &buffer_info;
+			// each frame will have a pointer to the SAME COMMON buffer, that why we are setting offset in this way
+			environment_buffer_info.offset = pad_uniform_buffer(sizeof(EnvironmentData)) * i;
+			environment_buffer_info.range = sizeof(EnvironmentData);
 
-			m_device.updateDescriptorSets(set_write, nullptr);
+			vk::WriteDescriptorSet camera_descriptor_set_write = init::write_descriptor_buffer(vk::DescriptorType::eUniformBuffer, m_frames[i].m_global_descriptor_set, &camera_buffer_info, 0);
+			vk::WriteDescriptorSet environment_descritor_set_write = init::write_descriptor_buffer(vk::DescriptorType::eUniformBuffer, m_frames[i].m_global_descriptor_set, &environment_buffer_info, 1);
+
+			vk::WriteDescriptorSet write_descriptor_sets[] = {camera_descriptor_set_write, environment_descritor_set_write};
+
+			m_device.updateDescriptorSets(2, write_descriptor_sets, 0, nullptr);
 		}
 			
 	}
 
-	void Engine::initialize_pipeline()
+	void Engine::init_pipeline()
 	{
 		// for triangle's
 		{
@@ -503,7 +516,7 @@ namespace halo
 			load_shaders("../shaders/default_mesh.vert.spv", default_vert_module);
 
 			vk::ShaderModule triangle_test_frag;
-			load_shaders("../shaders/triangle_test.frag.spv", triangle_test_frag);
+			load_shaders("../shaders/default_lit.frag.spv", triangle_test_frag);
 
 			PipelineBuilder pipeline_builder = {};
 			pipeline_builder.m_shader_stages.push_back(init::create_shader_stage(vk::ShaderStageFlagBits::eVertex, default_vert_module));
@@ -696,11 +709,12 @@ namespace halo
 		VkBufferCreateInfo vertex_buffer_create_info = static_cast<VkBufferCreateInfo>(buffer_create_info);
 		VkBuffer vertex_buffer;
 
-		vk::Result res = vk::Result(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &vertex_buffer, &mesh.m_allocated_buffer.m_allocation_data, nullptr));
-		VK_CHECK(res);
-		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyBuffer(m_vma_allocator, vertex_buffer, mesh.m_allocated_buffer.m_allocation_data)));
-	
+		vk::Result result = vk::Result(vmaCreateBuffer(m_vma_allocator, &vertex_buffer_create_info, &vma_allocation_create_info, &vertex_buffer, &mesh.m_allocated_buffer.m_allocation_data, nullptr));
+		VK_CHECK(result);
+
 		mesh.m_allocated_buffer.m_buffer = vertex_buffer;
+		
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyBuffer(m_vma_allocator, static_cast<VkBuffer>(mesh.m_allocated_buffer.m_buffer), mesh.m_allocated_buffer.m_allocation_data)));
 
 		// now that we have memory spot for vertex data, copy vertices into this GPU readable location
 		void *data;
@@ -787,6 +801,19 @@ namespace halo
 		memcpy(data, &camera_data, sizeof(CameraData));
 		vmaUnmapMemory(m_vma_allocator, get_current_frame_data().m_camera_allocated_buffer.m_allocation_data);
 
+		// for environment data
+		float frame_num = m_frame_number / 120.0f;
+		m_environment_data.m_ambient_color = {sin(frame_num), 0, cos(frame_num), 1};
+
+		char *environment_data;
+		vmaMapMemory(m_vma_allocator, m_environment_parameter_buffer.m_allocation_data, (void**)&environment_data);
+
+		int frame_index = m_frame_number % MAX_FRAMES_IN_FLIGHT;
+
+		environment_data += pad_uniform_buffer(sizeof(EnvironmentData)) * frame_index;
+		memcpy(environment_data, &m_environment_data, sizeof(EnvironmentData));
+		vmaUnmapMemory(m_vma_allocator, m_environment_parameter_buffer.m_allocation_data);
+
 		for (const auto& game_object : m_game_objects)
 		{
 			if (game_object.m_material != last_material)
@@ -837,6 +864,7 @@ namespace halo
 
 		allocated_buffer.m_buffer = buffer;
 
+		m_deletion_list.push_function(CREATE_LAMBDA_FUNCTION(vmaDestroyBuffer(m_vma_allocator, static_cast<VkBuffer>(allocated_buffer.m_buffer), allocated_buffer.m_allocation_data)));
 		return allocated_buffer;
 	}
 
@@ -867,6 +895,8 @@ namespace halo
 			// note : there is currently a memory leak regarding VkBuffers. Will be fixed soon.
 			m_deletion_list.clear_deletor_list();
 		}
+
+		vmaDestroyAllocator(m_vma_allocator);
 
 		m_device.destroy();
 		
