@@ -119,4 +119,18 @@ namespace halo
 		glm::vec4 m_sunlight_direction;
 		glm::vec4 m_sunlight_color;
 	};
+
+	// basic singleton timer for delta time calculation
+	struct Timer
+	{
+		double m_prev_frame;
+		double m_current_frame;
+		double m_delta_time;
+
+		static Timer& get_instance()
+		{
+			static Timer timer;
+			return timer;
+		}
+	};
 }

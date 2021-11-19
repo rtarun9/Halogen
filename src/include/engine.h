@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "mesh.h"
+#include "camera.h"
 
 #include <vk_mem_alloc.h>
 
@@ -149,5 +150,8 @@ namespace halo
 
 		// for handling cleanup convineintly
 		DeletionList m_deletion_list;
+
+		Camera m_camera;
+		Timer m_timer;
 	};
 }

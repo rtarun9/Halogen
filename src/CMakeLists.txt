@@ -14,3 +14,5 @@ target_include_directories(Halogen PUBLIC ${SDL_INCLUDE_DIR} ${Vulkan_INCLUDE_DI
 
 target_link_libraries(Halogen vkbootstrap vma tinyobjloader)
 target_link_libraries(Halogen SDL2main SDL2 Vulkan::Vulkan)
+
+target_precompile_headers(Halogen PUBLIC <VkBootstrap.h> <tiny_obj_loader.h> <vk_mem_alloc.h>)

@@ -10,6 +10,13 @@ add_subdirectory(third_party)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
+if(MSVC)
+    add_compile_options(/WX)
+    add_link_options(/WX)
+else()
+    #Need to find what to add since GLM has a error
+endif()
+
 add_subdirectory(src)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
@@ -26,6 +33,7 @@ target_precompile_headers(Halogen
     PRIVATE 
         <string>
         <vector>
+        <iostream>
         <unordered_map>
      
     PUBLIC

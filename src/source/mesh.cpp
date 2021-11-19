@@ -70,7 +70,8 @@ namespace halo
 
 		auto& attrib = reader.GetAttrib();
 		auto& shapes = reader.GetShapes();
-		auto& materials = reader.GetMaterials();
+
+		[[maybe_unused]] auto& materials = reader.GetMaterials();
 
 		// loop over all shapes
 		for (size_t s = 0; s < shapes.size(); s++)
@@ -95,10 +96,10 @@ namespace halo
 					tinyobj::real_t ny = attrib.normals[3 * size_t(index.normal_index) + 1];
 					tinyobj::real_t nz = attrib.normals[3 * size_t(index.normal_index) + 2];
 			
-					tinyobj::real_t cr = attrib.colors[3 *size_t(index.vertex_index) + 0];
-					tinyobj::real_t cg = attrib.colors[3 *size_t(index.vertex_index) + 1];
-					tinyobj::real_t cb = attrib.colors[3 *size_t(index.vertex_index) + 2];
-					
+					[[maybe_unused]]  tinyobj::real_t cr = attrib.colors[3 *size_t(index.vertex_index) + 0];
+					[[maybe_unused]]  tinyobj::real_t cg = attrib.colors[3 *size_t(index.vertex_index) + 1];
+					[[maybe_unused]]  tinyobj::real_t cb = attrib.colors[3 *size_t(index.vertex_index) + 2];
+							
 					Vertex vertex;
 					vertex.m_position.x = vx;
 					vertex.m_position.y = vy;
@@ -118,7 +119,7 @@ namespace halo
 
 				index_offset += fv;
 
-				shapes[s].mesh.material_ids[f];
+				[[maybe_unused]] auto unused = shapes[s].mesh.material_ids[f];
 			}
 		}
 	}

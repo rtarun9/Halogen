@@ -23,7 +23,7 @@ namespace halo
 		// combine all the structs ito pipeline
 
 		vk::GraphicsPipelineCreateInfo pipeline_create_info = {};
-		pipeline_create_info.stageCount = m_shader_stages.size();
+		pipeline_create_info.stageCount = static_cast<uint32_t>(m_shader_stages.size());
 		pipeline_create_info.pStages = m_shader_stages.data();
 
 		pipeline_create_info.pVertexInputState = &m_vertex_input_info;

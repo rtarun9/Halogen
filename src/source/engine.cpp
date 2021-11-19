@@ -2,6 +2,7 @@
 
 #include "../include/initializers.h"
 #include "../include/pipeline.h"
+#include "../include/custom_math.h"
 
 #include <VkBootstrap.h>
 
@@ -33,6 +34,8 @@ while(0)															   \
 
 // macro for making push back's to deletion queue a bit more readable
 #define CREATE_LAMBDA_FUNCTION(function) ([=](){function;})
+
+halo::Timer g_timer;
 
 namespace halo
 {
@@ -82,8 +85,16 @@ namespace halo
 		SDL_Event event;
 		bool quit = false;
 
+		bool front = false;
+		bool right = false;
+		bool back = false;
+		bool left=  false;
+
+
 		while (!quit)
 		{
+			g_timer.m_prev_frame = SDL_GetTicks();
+
 			while (SDL_PollEvent(&event) != 0)
 			{
 				if (event.type == SDL_QUIT)
@@ -92,13 +103,56 @@ namespace halo
 				}
 
 				const Uint8 *keyboard_state = SDL_GetKeyboardState(nullptr);
+
 				if (keyboard_state[SDL_SCANCODE_ESCAPE])
 				{
 					quit = true;
 				}
+				else 
+
+				if (keyboard_state[SDL_SCANCODE_W])
+				{
+					front = true;
+				}
+				else
+				{
+					front = false;
+				}
+
+				if (keyboard_state[SDL_SCANCODE_S])
+				{
+					back = true;
+				}
+				else
+				{
+					back = false;
+				}
+
+				if (keyboard_state[SDL_SCANCODE_A])
+				{
+					left = true;
+				}
+				else
+				{
+					left = false;
+				}
+
+				if (keyboard_state[SDL_SCANCODE_D])
+				{
+					right = true;
+				}
+				else
+				{
+					right = false;
+				}
 			}
+			
+			m_camera.update_position(front, back, left, right, (float)g_timer.m_delta_time);
 
 			render();
+
+			g_timer.m_current_frame = SDL_GetTicks();
+			g_timer.m_delta_time = g_timer.m_current_frame - g_timer.m_prev_frame;
 		}
 	}
 
@@ -288,7 +342,7 @@ namespace halo
 		vk::Extent3D extent = {};
 		extent.setWidth(m_window_extent.width);
 		extent.setHeight(m_window_extent.height);
-		extent.setDepth(1.0f);
+		extent.setDepth(1);
 
 		vk::ImageCreateInfo depth_image_create_info = init::create_image_info(m_depth_image_format, extent, vk::ImageUsageFlagBits::eDepthStencilAttachment);
 
@@ -779,9 +833,9 @@ namespace halo
 
 	void Engine::draw_objects(vk::CommandBuffer command_buffer, GameObject* game_object)
 	{		
-		glm::vec3 camera_position{0.0f, 0.0f, -10.0f};
+		glm::vec3 camera_position{m_camera.m_position};
 
-		glm::mat4 view = glm::translate(glm::mat4{1.0f}, camera_position);
+		glm::mat4 view = m_camera.get_look_at();
 		
 		glm::mat4 projection_mat = glm::perspective(glm::radians(45.0f), static_cast<float>(m_window_extent.width) / m_window_extent.height, 0.1f, 100.0f);
 		projection_mat[1][1] *= -1;
@@ -838,7 +892,7 @@ namespace halo
 				last_mesh = game_object.m_mesh;
 			}
 			
-			command_buffer.draw(game_object.m_mesh->m_vertices.size(), 1, 0, 0);
+			command_buffer.draw(static_cast<uint32_t>(game_object.m_mesh->m_vertices.size()), 1, 0, 0);
 		}
 	}
 

@@ -1,7 +1,5 @@
 #include "../include/engine.h"
 
-#include <iostream>
-
 int main(int argc, char** argv)
 {
 	halo::Config config;
