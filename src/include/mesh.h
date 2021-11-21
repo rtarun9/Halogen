@@ -17,9 +17,9 @@ namespace halo
 	// Position, normal, color
 	struct Vertex
 	{
-		glm::vec3 m_position;
-		glm::vec3 m_normal;
-		glm::vec3 m_color;
+		math::V3 m_position;
+		math::V3 m_normal;
+		math::V3 m_color;
 
 		[[nodiscard]]
 		static VertexInputLayoutDescription get_vertex_input_layout_description();

@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_KHR_vulkan_glsl : enable
 
@@ -21,9 +21,22 @@ layout (set = 0, binding = 0) uniform CameraBuffer
 	mat4 m_projection_view_mat;
 } cameraBuffer;
 
+struct ObjectData
+{
+	mat4 m_model_mat;
+};
+
+layout (std140, set = 1, binding = 0) readonly buffer  ObjectBuffer
+{
+	ObjectData objects[];	
+} objectBuffer;
+
 void main()
 {
-	gl_Position = cameraBuffer.m_projection_view_mat * PushConstants.m_transform_mat * vec4(in_position, 1.0f);
+	mat4 model_mat = objectBuffer.objects[gl_BaseInstance].m_model_mat;
+	mat4 transform_mat = cameraBuffer.m_projection_view_mat * model_mat;
+
+	gl_Position = transform_mat * vec4(in_position, 1.0f);
 
 	frag_color = in_color;
 }

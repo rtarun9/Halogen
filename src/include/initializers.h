@@ -2,6 +2,7 @@
 
 #include "types.h"
 
+// use of initializers.h : Contains utility functions to create vulkan handles
 namespace halo::init
 {
 	// default flag : vk::CommandPoolCreateFlagBits::eResetCommandBuffer for allowing individual command buffers allocated from this pool to be reset.
@@ -60,6 +61,11 @@ namespace halo::init
 	[[nodiscard]]
 	vk::DescriptorSetLayoutBinding create_descriptor_set_layout_binding(vk::DescriptorType type, vk::ShaderStageFlags shader_stage, uint32_t binding);
 
+	// the descriptor pool is used to allcate descriptors from it
+	// vk::DescriptorPoolSize is a struct having the type and the maximum number of pointers to that type of descriptor that can be allocated from it.
+	[[nodiscard]]
+	vk::DescriptorPoolCreateInfo create_descriptor_pool(const std::vector<vk::DescriptorPoolSize>& pool_size, uint32_t max_descriptor_set_count);
+	
 	[[nodiscard]]
 	vk::WriteDescriptorSet write_descriptor_buffer(vk::DescriptorType type, vk::DescriptorSet descriptor_set, vk::DescriptorBufferInfo *buffer_info, uint32_t binding);
 }

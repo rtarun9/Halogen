@@ -5,6 +5,8 @@ project("Halogen")
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan)
+find_package(SDL2 CONFIG REQUIRED)
+
 
 add_subdirectory(third_party)
 
@@ -14,7 +16,7 @@ if(MSVC)
     add_compile_options(/WX)
     add_link_options(/WX)
 else()
-    #Need to find what to add since GLM has a error
+    add_compile_options(-werror)
 endif()
 
 add_subdirectory(src)
@@ -35,6 +37,11 @@ target_precompile_headers(Halogen
         <vector>
         <iostream>
         <unordered_map>
+        <initializer_list>
+        <cmath>
+        <algorithm>
+        <fstream>
+        <exception>
      
     PUBLIC
         <vulkan/vulkan.hpp>

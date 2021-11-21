@@ -4,7 +4,7 @@
 
 #include <vk_mem_alloc.h>
 
-#include <glm/glm.hpp>
+#include "custom_math.h"
 
 #include <vector>
 #include <functional>
@@ -42,7 +42,7 @@ namespace halo
 	struct MeshPushConstants
 	{
 		// transform_mat : projection_matrix * view_matrix * model_mat
-		glm::mat4 m_transform_mat;
+		math::M4 m_transform_mat;
 	};
 
 	// struct for the buffer allocated + some information like where it has been allocated, heap type, and VMA state.
@@ -73,17 +73,23 @@ namespace halo
 	{
 		Mesh *m_mesh;
 		Material *m_material;
-		glm::mat4 m_mesh_transform;
+		math::M4 m_mesh_transform;
 	};
 
 	// Buffer for camera details (will be sent to GPU via descriptor sets)
 	struct CameraData
 	{
-		glm::mat4 m_view_mat;
-		glm::mat4 m_projection_mat;
+		math::M4 m_view_mat{0.0f};
+		math::M4 m_projection_mat{0.0f};
 
 		// to avoid having to multiply this in shaders (since its constant for each vertex);
-		glm::mat4 m_projection_view_mat;
+		math::M4 m_projection_view_mat{0.0f};
+	};
+
+	// data needed for each objects (only model matrix for now).
+	struct ObjectData
+	{
+		math::M4 model_mat;
 	};
 
 	// FrameData : includes vulkan handles that are unique per frame (one frame is using GPU, the other is using CPU). Needed for double buffering.
@@ -102,6 +108,12 @@ namespace halo
 		AllocatedBuffer m_camera_allocated_buffer;
 
 		vk::DescriptorSet m_global_descriptor_set;
+
+		// descriptor set for per object 
+		vk::DescriptorSet m_object_descriptor_set;
+
+		// each frame has one buffer containing all objects data 
+		AllocatedBuffer m_objects_buffer;
 	};
 
 	// struct having data of environment. Size : 4 * 4 * 5  = 80 bytes
@@ -109,18 +121,18 @@ namespace halo
 	struct EnvironmentData
 	{
 		// w is used as exponent
-		glm::vec4 m_fog_color;
+		math::V4 m_fog_color;
 
 		// using x as minimum distance, and y as maximum distance
-		glm::vec4 m_fog_distance;
-		glm::vec4 m_ambient_color;
+		math::V4 m_fog_distance;
+		math::V4 m_ambient_color;
 
 		// w is used as power
-		glm::vec4 m_sunlight_direction;
-		glm::vec4 m_sunlight_color;
+		math::V4 m_sunlight_direction;
+		math::V4 m_sunlight_color;
 	};
 
-	// basic singleton timer for delta time calculation
+	// basic timer class, useful for delta time calculation
 	struct Timer
 	{
 		double m_prev_frame;
@@ -129,7 +141,7 @@ namespace halo
 
 		static Timer& get_instance()
 		{
-			static Timer timer;
+			static Timer timer{};
 			return timer;
 		}
 	};

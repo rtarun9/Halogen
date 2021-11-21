@@ -1,24 +1,23 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "custom_math.h"
 
 namespace halo
 {
-
 	static constexpr float CAMERA_SPEED = 0.01f;
-
+		
+	// base camera class. Engine currently has only one viewport and one 'free' camera.
 	struct Camera
 	{
 		// camera's coordinate system
-		glm::vec3 m_up{ 0.0f, 1.0f, 0.0f };
-		glm::vec3 m_right{ 1.0f, 0.0f, 0.0f };
-		glm::vec3 m_front{ 0.0f, 0.0f, -1.0f };
+		math::V3 m_up{ 0.0f, 1.0f, 0.0f };
+		math::V3 m_right{ 1.0f, 0.0f, 0.0f };
+		math::V3 m_front{ 0.0f, 0.0f, -1.0f };
 
-		glm::vec3 m_position{ 0.0f, 0.0f, 5.0f };
-		glm::vec3 m_world_up{ 0.0f, 1.0f, 0.0f };
+		math::V3 m_position{ 0.0f, 0.0f, 10.0f };
+		math::V3 m_world_up{ 0.0f, 1.0f, 0.0f };
 
-		glm::vec3 m_target{ 0.0f, 0.0f, 0.0f };
+		math::V3 m_target{ 0.0f, 0.0f, 0.0f };
 
 		float m_pitch{ 0.0f };
 		float m_yaw{ -90.0f };
@@ -34,20 +33,20 @@ namespace halo
 			return camera;
 		}
 
-		inline glm::mat4 get_look_at()
+		inline math::M4 get_look_at()
 		{
-			return glm::lookAt(m_position, m_position + m_front, m_up);
+			return math::look_at(m_right.normalize(), m_up.normalize(), m_front.normalize(), m_position);
 		}
 
 		inline void update_angles()
 		{
 			m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
 
-			glm::vec3 direction{ cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch)), sin(glm::radians(m_pitch)), sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch)) };
+			math::V3 direction{ cos(radians(m_yaw)) * cos(radians(m_pitch)), sin(radians(m_pitch)), sin(radians(m_yaw)) * cos(radians(m_pitch)) };
 
-			m_front = glm::normalize(direction);
-			m_right = glm::normalize(glm::cross(m_front, m_world_up));
-			m_up = glm::normalize(glm::cross(m_right, m_front));
+			m_front = (direction).normalize();
+			m_right = cross(m_front, m_world_up).normalize();
+			m_up = (cross(m_right, m_front)).normalize();
 		}
 
 		inline void update_position(bool front, bool back, bool left, bool right, float delta_time)
@@ -61,7 +60,7 @@ namespace halo
 				m_position -= m_front * CAMERA_SPEED * (float)delta_time;
 			}
 
-			m_right = glm::normalize(glm::cross(m_front, m_up));
+			m_right = (cross(m_front, m_up)).normalize();
 
 			if (left)
 			{

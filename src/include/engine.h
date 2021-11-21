@@ -7,6 +7,7 @@
 #include <vk_mem_alloc.h>
 
 #include <unordered_map>
+#include <iostream>
 
 struct SDL_Window;
 
@@ -22,6 +23,7 @@ namespace halo
 		std::string m_window_name;
 	};
 
+	// base engine class. All things are brought together here
 	class Engine
 	{
 	public:
@@ -58,7 +60,7 @@ namespace halo
 
 		void upload_meshes(Mesh& mesh);
 
-		void initialize_scene();
+		void init_scene();
 
 		void create_material(const std::string& material_name, vk::Pipeline pipeline, vk::PipelineLayout pipeline_layout);
 
@@ -128,7 +130,9 @@ namespace halo
 
 		// descriptor related handles
 		vk::DescriptorPool m_descriptor_pool;
+		
 		vk::DescriptorSetLayout m_global_descriptor_set_layout;
+		vk::DescriptorSetLayout m_object_descriptor_set_layout;
 
 		// for rendering
 		vk::Pipeline m_triangle_pipeline;

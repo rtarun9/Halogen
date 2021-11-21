@@ -191,6 +191,17 @@ namespace halo::init
 		return set_layout_binding;
 	}
 
+	vk::DescriptorPoolCreateInfo create_descriptor_pool(const std::vector<vk::DescriptorPoolSize>& pool_size, uint32_t max_descriptor_set_count)
+	{
+		vk::DescriptorPoolCreateInfo create_info{};
+		
+		create_info.maxSets = max_descriptor_set_count;
+		create_info.poolSizeCount = static_cast<uint32_t>(pool_size.size());
+		create_info.pPoolSizes = pool_size.data();
+
+		return create_info;
+	}
+
 	vk::WriteDescriptorSet write_descriptor_buffer(vk::DescriptorType type, vk::DescriptorSet descriptor_set, vk::DescriptorBufferInfo* buffer_info, uint32_t binding)
 	{
 		vk::WriteDescriptorSet descriptor_set_write{};

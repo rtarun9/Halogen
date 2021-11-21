@@ -1,7 +1,5 @@
 #include "../include/pipeline.h"
 
-#include <iostream>
-
 namespace halo
 {
 	vk::Pipeline PipelineBuilder::create_pipeline(vk::Device device, vk::RenderPass render_pass)

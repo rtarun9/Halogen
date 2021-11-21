@@ -7,15 +7,16 @@ A work in progress Graphics engine using C++ / Vulkan. Made for learning / exper
 * Make fancy stuff appear on the screen :)
 
 # Building the project
-* Uses Cmake (only SDL2 needs to be vendored in manually).  Automatically compiles vertex and fragment shaders to Spir-V.
-* Currently only tested on Windows 10
+* Uses VCPKG for package management (all third party libs except SDL2 are vendored in). Run the install_packages script according to your OS. Cmake is used for building the project.
+It utomatically compiles vertex and fragment shaders to Spir-V.
+* Currently only tested on Windows 10 & Windows 11.
 
 # Dependencies (Third party)
 [SDL2](https://github.com/libsdl-org/SDL) : Windowing and input \
 [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) : Memory allocator for vulkan \
-[GLM](https://github.com/g-truc/glm) : Linear algebra math library \
-[VK-Bootstrap](https://github.com/charles-lunarg/vk-bootstrap) Handles the boring vulkan setup code
+[VK-Bootstrap](https://github.com/charles-lunarg/vk-bootstrap) Handles the boring vulkan setup code \
+[TinyObjLoader](https://github.com/tinyobjloader/tinyobjloader/) For model loading (.obj files only for now)
 
 # Resources
 [Vk-Guide](https://vkguide.dev/) : Primary resource for vulkan \
-[Game-Math](https://gamemath.com/) : Linear algebra 
+[Game-Math](https://gamemath.com/) : Linear algebra theory
